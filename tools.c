@@ -835,6 +835,22 @@ int LayRoad(int x, int y, short *tilePtr) {
         return 1;
     }
     
+    /* Handle crossing a rail line */
+    if (tile >= LHRAIL && tile <= LVRAIL10) {
+        cost = ROAD_COST;
+        if (TotalFunds < cost) {
+            return 0;
+        }
+        Spend(cost);
+        if ((y > 0 && (Map[y-1][x] & LOMASK) >= ROADBASE && (Map[y-1][x] & LOMASK) <= LASTROAD) ||
+            (y < WORLD_Y-1 && (Map[y+1][x] & LOMASK) >= ROADBASE && (Map[y+1][x] & LOMASK) <= LASTROAD)) {
+            *tilePtr = HRAILROAD | BULLBIT | BURNBIT;
+        } else {
+            *tilePtr = VRAILROAD | BULLBIT | BURNBIT;
+        }
+        return 1;
+    }
+
     /* Handle crossing a power line */
     if (tile >= POWERBASE && (tile <= LASTPOWER)) {
         cost = ROAD_COST;
@@ -842,14 +858,11 @@ int LayRoad(int x, int y, short *tilePtr) {
             return 0;
         }
         Spend(cost);
-        /* Use the built-in road/power crossing tiles */
-        if (y > 0 && y < WORLD_Y - 1 && 
+        if (y > 0 && y < WORLD_Y - 1 &&
             (Map[y-1][x] & LOMASK) >= POWERBASE && (Map[y-1][x] & LOMASK) <= LASTPOWER &&
             (Map[y+1][x] & LOMASK) >= POWERBASE && (Map[y+1][x] & LOMASK) <= LASTPOWER) {
-            /* Vertical power line needs horizontal road crossing */
             *tilePtr = HROADPOWER | CONDBIT | BULLBIT | BURNBIT;
         } else {
-            /* Horizontal power line needs vertical road crossing */
             *tilePtr = VROADPOWER | CONDBIT | BULLBIT | BURNBIT;
         }
         return 1;
@@ -890,6 +903,22 @@ int LayRail(int x, int y, short *tilePtr) {
         return 1;
     }
     
+    /* Handle crossing a road */
+    if (tile >= ROADBASE && tile <= LASTROAD) {
+        cost = RAIL_COST;
+        if (TotalFunds < cost) {
+            return 0;
+        }
+        Spend(cost);
+        if ((y > 0 && (Map[y-1][x] & LOMASK) >= LHRAIL && (Map[y-1][x] & LOMASK) <= LVRAIL10) ||
+            (y < WORLD_Y-1 && (Map[y+1][x] & LOMASK) >= LHRAIL && (Map[y+1][x] & LOMASK) <= LVRAIL10)) {
+            *tilePtr = VRAILROAD | BULLBIT | BURNBIT;
+        } else {
+            *tilePtr = HRAILROAD | BULLBIT | BURNBIT;
+        }
+        return 1;
+    }
+
     /* Handle crossing a power line */
     if (tile >= POWERBASE && (tile <= LASTPOWER)) {
         cost = RAIL_COST;
@@ -897,14 +926,11 @@ int LayRail(int x, int y, short *tilePtr) {
             return 0;
         }
         Spend(cost);
-        /* Use the built-in rail/power crossing tiles */
-        if (y > 0 && y < WORLD_Y - 1 && 
+        if (y > 0 && y < WORLD_Y - 1 &&
             (Map[y-1][x] & LOMASK) >= POWERBASE && (Map[y-1][x] & LOMASK) <= LASTPOWER &&
             (Map[y+1][x] & LOMASK) >= POWERBASE && (Map[y+1][x] & LOMASK) <= LASTPOWER) {
-            /* Vertical power line needs horizontal rail crossing */
             *tilePtr = RAILHPOWERV | CONDBIT | BULLBIT | BURNBIT;
         } else {
-            /* Horizontal power line needs vertical rail crossing */
             *tilePtr = RAILVPOWERH | CONDBIT | BULLBIT | BURNBIT;
         }
         return 1;
