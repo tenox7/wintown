@@ -34,8 +34,8 @@ static short HDy[9] = {0, -5, -3,  0,  3,  5,  3,  0, -3};
 static short CDx[12] = {0,  0,  6,  8,  6,  0, -6, -8, -6,  8,  8,  8};
 static short CDy[12] = {0, -8, -6,  0,  6,  8,  6,  0, -6,  0,  0,  0};
 
-/* Animation frames for trains */
-static short TrainPic2[5] = {1, 2, 1, 2, 5};
+/* Animation frames for trains: dir 0=E, 1=S, 2=W, 3=N, 4=stop */
+static short TrainPic2[5] = {2, 1, 2, 1, 5};
 
 /* Turn direction table for sprite navigation */
 static short Dir2Tab[16] = {0, 1, 2, 3, 4, 7, 6, 5, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -291,67 +291,50 @@ void MoveSprites(void) {
     }
 }
 
-/* Train sprite behavior */
+/* Train sprite behavior (based on original Micropolis) */
 void DoTrainSprite(SimSprite *sprite) {
-    short tile, dir;
-    
-    if (sprite->frame == 3 || sprite->frame == 4) {
+    static short Cx[4] = {   0,  16,   0, -16 };
+    static short Cy[4] = { -16,   0,  16,   0 };
+    short z, dir, dir2, c;
+
+    if (sprite->frame == 3 || sprite->frame == 4)
         sprite->frame = TrainPic2[sprite->dir];
-    }
-    
-    MoveSprite(sprite, MOVEMENT_TYPE_GROUND);
-    
-    if (sprite->count > 0) {
-        sprite->count--;
-    } else {
-        sprite->count = 0;
-        
-        if (sprite->dir == 4) { /* Stopped */
-            if (SimRandom(TRAIN_START_CHANCE) == 0) {
-                dir = SimRandom(TRAIN_STOP_CHANCE);
-                sprite->new_dir = dir;
-                sprite->frame = TrainPic2[dir];
+
+    sprite->x += Dx[sprite->dir];
+    sprite->y += Dy[sprite->dir];
+
+    if (!(SpriteCycle & 3)) {
+        dir = SimRandom(4);
+        for (z = dir; z < (dir + 4); z++) {
+            dir2 = z & 3;
+            if (sprite->dir != 4) {
+                if (dir2 == ((sprite->dir + 2) & 3)) continue;
             }
-        } else {
-            tile = GetChar(sprite->x + sprite->x_hot, sprite->y + sprite->y_hot);
-            
-            if (tile == HRAIL || (tile >= LHRAIL && tile <= LVRAIL10)) {
-                if (sprite->dir == 1 || sprite->dir == 3) { /* North-South movement */
-                    if (SimRandom(TRAIN_STOP_CHANCE) == 0) {
-                        sprite->dir = 4; /* Stop */
-                        sprite->frame = 5;
-                        sprite->count = TRAIN_STOP_DURATION_BASE + SimRandom(TRAIN_STOP_DURATION_RANDOM);
-                    }
-                } else { /* East-West movement */
-                    sprite->new_dir = sprite->dir;
-                }
-            } else if (tile == VRAIL || (tile >= LHRAIL && tile <= LVRAIL10)) {
-                if (sprite->dir == 0 || sprite->dir == 2) { /* East-West movement */
-                    if (SimRandom(TRAIN_STOP_CHANCE) == 0) {
-                        sprite->dir = 4; /* Stop */
-                        sprite->frame = 5;
-                        sprite->count = TRAIN_STOP_DURATION_BASE + SimRandom(TRAIN_STOP_DURATION_RANDOM);
-                    }
-                } else { /* North-South movement */
-                    sprite->new_dir = sprite->dir;
-                }
-            } else {
-                /* Not on rail - try to find rail */
-                dir = TryOther(sprite->x + sprite->x_hot, sprite->y + sprite->y_hot, sprite->dir, sprite);
-                if (dir != sprite->dir) {
-                    sprite->new_dir = dir;
-                    sprite->frame = TrainPic2[dir];
+            c = GetChar(sprite->x + Cx[dir2] + 48,
+                        sprite->y + Cy[dir2]);
+            if ((c >= RAILBASE && c <= LASTRAIL) ||
+                c == RAILVPOWERH ||
+                c == RAILHPOWERV) {
+                if (sprite->dir != dir2 && sprite->dir != 4) {
+                    if ((sprite->dir + dir2) == 3)
+                        sprite->frame = 3;
+                    else
+                        sprite->frame = 4;
                 } else {
-                    sprite->dir = 4;
-                    sprite->frame = 5;
+                    sprite->frame = TrainPic2[dir2];
                 }
+
+                if (c == RAILBASE || c == (RAILBASE + 1))
+                    sprite->frame = 5;
+                sprite->dir = dir2;
+                return;
             }
         }
-        
-        if (sprite->new_dir != sprite->dir) {
-            sprite->dir = sprite->new_dir;
-            sprite->frame = TrainPic2[sprite->dir];
+        if (sprite->dir == 4) {
+            sprite->frame = 0;
+            return;
         }
+        sprite->dir = 4;
     }
 }
 

@@ -919,7 +919,7 @@ int LayRail(int x, int y, short *tilePtr) {
         }
 
         Spend(cost);
-        *tilePtr = RAILBASE | BULLBIT | BURNBIT;
+        *tilePtr = LHRAIL | BULLBIT | BURNBIT;
         return 1;
     }
 

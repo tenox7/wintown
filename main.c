@@ -2561,17 +2561,31 @@ LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         case IDM_SPAWN_TRAIN:
             {
                 SimSprite *sprite;
-                int x, y;
-                
-                /* Spawn train at center of visible area */
-                x = (xOffset + (cxClient / 2)) & ~15;
-                y = (yOffset + (cyClient / 2)) & ~15;
-                
-                sprite = NewSprite(SPRITE_TRAIN, x, y);
-                if (sprite) {
-                    addGameLog("Train spawned");
-                } else {
-                    addGameLog("Could not spawn train - too many sprites");
+                int tx, ty, cx, cy, found, radius;
+                short tile;
+
+                cx = (xOffset + (cxClient / 2)) >> 4;
+                cy = (yOffset + (cyClient / 2)) >> 4;
+                found = 0;
+
+                for (radius = 0; radius < 60 && !found; radius++) {
+                    for (ty = cy - radius; ty <= cy + radius && !found; ty++) {
+                        for (tx = cx - radius; tx <= cx + radius && !found; tx++) {
+                            if (tx < 0 || tx >= WORLD_X || ty < 0 || ty >= WORLD_Y) continue;
+                            if (abs(tx - cx) != radius && abs(ty - cy) != radius) continue;
+                            tile = Map[ty][tx] & LOMASK;
+                            if (tile >= RAILBASE && tile <= LASTRAIL) {
+                                sprite = NewSprite(SPRITE_TRAIN, tx << 4, ty << 4);
+                                if (sprite) {
+                                    addGameLog("Train spawned on rail at %d,%d", tx, ty);
+                                    found = 1;
+                                }
+                            }
+                        }
+                    }
+                }
+                if (!found) {
+                    addGameLog("No rail found - cannot spawn train");
                 }
             }
             return 0;
