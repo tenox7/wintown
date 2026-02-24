@@ -2527,9 +2527,11 @@ LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 
                 sprite = NewSprite(SPRITE_HELICOPTER, x, y);
                 if (sprite) {
-                    sprite->control = -1; /* Autonomous mode */
-                    addGameLog("SUCCESS: Helicopter spawned at %d,%d", x, y);
-                    addGameLog("DEBUG: Helicopter frame=%d, dir=%d", sprite->frame, sprite->dir);
+                    sprite->control = -1;
+                    sprite->count = 150;
+                    sprite->dest_x = SimRandom(WORLD_X) << 4;
+                    sprite->dest_y = SimRandom(WORLD_Y) << 4;
+                    addGameLog("SUCCESS: Helicopter spawned at %d,%d dest=%d,%d", x, y, sprite->dest_x, sprite->dest_y);
                 } else {
                     addGameLog("FAILED: Could not spawn helicopter");
                     addGameLog("DEBUG: Max sprites=%d, current=%d", MAX_SPRITES, spriteCount);

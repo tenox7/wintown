@@ -346,6 +346,8 @@ void SimFrame(void) {
         Simulate(Fcycle & 15);
         break;
     }
+
+    MoveSprites();
 }
 
 void Simulate(int mod16) {
@@ -375,9 +377,6 @@ void Simulate(int mod16) {
         /* Process tile animations */
         AnimateTiles();
 
-        /* Move transportation sprites */
-        MoveSprites();
-        
         /* Original WiNTown message system */
         SendMessages();
         doMessage();

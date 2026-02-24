@@ -489,12 +489,12 @@ void DoAirplaneSprite(SimSprite *sprite) {
 
 /* Helicopter sprite behavior */
 void DoCopterSprite(SimSprite *sprite) {
-    int dx, dy, z;
-    
+    int dx, dy, z, d;
+
     if (sprite->sound_count > 0) {
         sprite->sound_count--;
     }
-    
+
     if (sprite->control < 0) {
         if (sprite->count > 0) sprite->count--;
 
@@ -544,13 +544,11 @@ void DoCopterSprite(SimSprite *sprite) {
         }
     }
 
-    {
-        int d;
-        z = sprite->frame;
-        d = GetDirection(sprite->x, sprite->y, sprite->dest_x, sprite->dest_y);
-        z = TurnTo(z, d);
-        sprite->frame = z;
-    }
+    z = sprite->frame;
+    d = GetDirection(sprite->x, sprite->y, sprite->dest_x, sprite->dest_y);
+    z = TurnTo(z, d);
+    sprite->frame = z;
+    sprite->dir = z;
 
     MoveSprite(sprite, MOVEMENT_TYPE_HELICOPTER);
 
@@ -754,21 +752,19 @@ static int GetDirection(int orgX, int orgY, int desX, int desY) {
     return dir;
 }
 
-/* Turn toward desired direction */
-static int TurnTo(int orgDir, int desDir) {
-    if (orgDir == desDir) {
-        return orgDir;
+/* Turn toward desired direction (1 step at a time, shortest path) */
+static int TurnTo(int p, int d) {
+    if (p == d) return p;
+    if (p < d) {
+        if ((d - p) < 4) p++;
+        else p--;
+    } else {
+        if ((p - d) < 4) p--;
+        else p++;
     }
-    
-    if (((orgDir + 1) & 7) == desDir) {
-        return desDir;
-    }
-    
-    if (((orgDir - 1) & 7) == desDir) {
-        return desDir;
-    }
-    
-    return orgDir; /* Need more frames to turn */
+    if (p > 7) p = 0;
+    if (p < 0) p = 7;
+    return p;
 }
 
 /* Get tile at coordinates */
@@ -929,6 +925,7 @@ void GenerateShips(void) {
 void GenerateAircraft(void) {
     int x, y;
     short tile;
+    SimSprite *copter;
     
     if (SpriteCount >= MAX_SPRITES - 5) {
         return;
@@ -949,7 +946,13 @@ void GenerateAircraft(void) {
                     if (SimRandom(TRAIN_STOP_CHANCE) < 3) {
                         NewSprite(SPRITE_AIRPLANE, x << 4, y << 4);
                     } else {
-                        NewSprite(SPRITE_HELICOPTER, x << 4, y << 4);
+                        copter = NewSprite(SPRITE_HELICOPTER, x << 4, y << 4);
+                        if (copter) {
+                            copter->control = -1;
+                            copter->count = 150;
+                            copter->dest_x = SimRandom(WORLD_X) << 4;
+                            copter->dest_y = SimRandom(WORLD_Y) << 4;
+                        }
                     }
                     return;
                 }
@@ -977,7 +980,10 @@ void GenerateHelicopters(void) {
         
         copter = NewSprite(SPRITE_HELICOPTER, x, y);
         if (copter) {
-            copter->control = -1; /* Autonomous mode */
+            copter->control = -1;
+            copter->count = 150;
+            copter->dest_x = SimRandom(WORLD_X) << 4;
+            copter->dest_y = SimRandom(WORLD_Y) << 4;
             return;
         }
     }
@@ -990,7 +996,10 @@ void GenerateHelicopters(void) {
         
         copter = NewSprite(SPRITE_HELICOPTER, x, y);
         if (copter) {
-            copter->control = -1; /* Autonomous mode */
+            copter->control = -1;
+            copter->count = 150;
+            copter->dest_x = SimRandom(WORLD_X) << 4;
+            copter->dest_y = SimRandom(WORLD_Y) << 4;
             return;
         }
     }
@@ -1003,7 +1012,10 @@ void GenerateHelicopters(void) {
         
         copter = NewSprite(SPRITE_HELICOPTER, x, y);
         if (copter) {
-            copter->control = -1; /* Autonomous mode */
+            copter->control = -1;
+            copter->count = 150;
+            copter->dest_x = SimRandom(WORLD_X) << 4;
+            copter->dest_y = SimRandom(WORLD_Y) << 4;
             return;
         }
     }
@@ -1016,7 +1028,10 @@ void GenerateHelicopters(void) {
         
         copter = NewSprite(SPRITE_HELICOPTER, x, y);
         if (copter) {
-            copter->control = -1; /* Autonomous mode */
+            copter->control = -1;
+            copter->count = 150;
+            copter->dest_x = SimRandom(WORLD_X) << 4;
+            copter->dest_y = SimRandom(WORLD_Y) << 4;
             return;
         }
     }
