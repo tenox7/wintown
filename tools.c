@@ -1117,10 +1117,10 @@ void FixZone(int x, int y, short *tilePtr) {
  * This is equivalent to WiNTownJS's normalizeRoad function
  */
 short NormalizeRoad(short tile) {
-    /* For roads, convert them to a standard set of tiles */
-    if (tile >= ROADBASE && tile <= LASTROAD) {
-        return (tile & 15) + ROADS;
-    }
+    if (tile == HROADPOWER || tile == VROADPOWER)
+        return tile;
+    if (tile >= ROADBASE && tile <= LASTROAD)
+        return (tile & 15) + ROADBASE;
     return tile;
 }
 
@@ -1154,55 +1154,50 @@ void FixSingle(int x, int y) {
 
     /* Check for road connections */
     if (tile >= ROADS && tile <= INTERSECTION) {
-        /* Check the north side */
+        /* North: allow N-S roads (VROADPOWER, HRAILROAD), exclude HBRIDGE pattern */
         if (y > 0) {
             rawNorth = Map[y - 1][x] & LOMASK;
             normNorth = NormalizeRoad(rawNorth);
-
-            if ((rawNorth == HRAILROAD || (normNorth >= ROADS && normNorth <= INTERSECTION)) &&
-                rawNorth != HROADPOWER && rawNorth != VRAILROAD &&
-                rawNorth != HBRIDGE) {
-                adjTile |= 1;  /* North connection */
+            if ((rawNorth == HRAILROAD) || (rawNorth == VROADPOWER) ||
+                ((normNorth >= ROADBASE) && (normNorth <= ROADBASE + 14) &&
+                 (normNorth != ROADBASE))) {
+                adjTile |= 1;
             }
         }
 
-        /* Check the east side */
+        /* East: allow E-W roads (HROADPOWER, VRAILROAD), exclude VBRIDGE pattern */
         if (x < WORLD_X - 1) {
             rawEast = Map[y][x + 1] & LOMASK;
             normEast = NormalizeRoad(rawEast);
-
-            if ((rawEast == VRAILROAD || (normEast >= ROADS && normEast <= INTERSECTION)) &&
-                rawEast != VROADPOWER && rawEast != HRAILROAD &&
-                rawEast != VBRIDGE) {
-                adjTile |= 2;  /* East connection */
+            if ((rawEast == VRAILROAD) || (rawEast == HROADPOWER) ||
+                ((normEast >= ROADBASE) && (normEast <= ROADBASE + 14) &&
+                 (normEast != ROADBASE + 1))) {
+                adjTile |= 2;
             }
         }
 
-        /* Check the south side */
+        /* South: same as north */
         if (y < WORLD_Y - 1) {
             rawSouth = Map[y + 1][x] & LOMASK;
             normSouth = NormalizeRoad(rawSouth);
-
-            if ((rawSouth == HRAILROAD || (normSouth >= ROADS && normSouth <= INTERSECTION)) &&
-                rawSouth != HROADPOWER && rawSouth != VRAILROAD &&
-                rawSouth != HBRIDGE) {
-                adjTile |= 4;  /* South connection */
+            if ((rawSouth == HRAILROAD) || (rawSouth == VROADPOWER) ||
+                ((normSouth >= ROADBASE) && (normSouth <= ROADBASE + 14) &&
+                 (normSouth != ROADBASE))) {
+                adjTile |= 4;
             }
         }
 
-        /* Check the west side */
+        /* West: same as east */
         if (x > 0) {
             rawWest = Map[y][x - 1] & LOMASK;
             normWest = NormalizeRoad(rawWest);
-
-            if ((rawWest == VRAILROAD || (normWest >= ROADS && normWest <= INTERSECTION)) &&
-                rawWest != VROADPOWER && rawWest != HRAILROAD &&
-                rawWest != VBRIDGE) {
-                adjTile |= 8;  /* West connection */
+            if ((rawWest == VRAILROAD) || (rawWest == HROADPOWER) ||
+                ((normWest >= ROADBASE) && (normWest <= ROADBASE + 14) &&
+                 (normWest != ROADBASE + 1))) {
+                adjTile |= 8;
             }
         }
 
-        /* Update the road tile with proper connections */
         tile = RoadTable[adjTile];
         setMapTile(x, y, tile, BULLBIT | BURNBIT, TILE_SET_PRESERVE, "FixSingle-road");
         return;
@@ -1309,25 +1304,7 @@ void FixSingle(int x, int y) {
         return;
     }
     
-    /* Handle the special crossing tiles */
-    if (tile == HROADPOWER || tile == VROADPOWER || 
-        tile == RAILHPOWERV || tile == RAILVPOWERH ||
-        tile == HRAILROAD || tile == VRAILROAD) {
-        /* These special tiles should trigger updates for surrounding tiles */
-        if (y > 0) {
-            FixSingle(x, y - 1);
-        }
-        if (x < WORLD_X - 1) {
-            FixSingle(x + 1, y);
-        }
-        if (y < WORLD_Y - 1) {
-            FixSingle(x, y + 1);
-        }
-        if (x > 0) {
-            FixSingle(x - 1, y);
-        }
-        return;
-    }
+    /* Crossing tiles don't need self-fixing, they are set by placement code */
 }
 
 /* Toolbar state variables */

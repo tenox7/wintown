@@ -133,14 +133,14 @@ static void SmoothPSMap(void) {
 
             /* Original WiNTown smoothing algorithm */
             edge = (edge >> 2) + PoliceMap[y][x];  /* (neighbors/4) + current */
-            STem[x][y] = (Byte)(edge >> 1);        /* divide by 2 - cast to Byte */
+            STem[y][x] = (Byte)(edge >> 1);
         }
     }
 
     /* Copy back to original map */
     for (x = 0; x < WORLD_X / 4; x++) {
         for (y = 0; y < WORLD_Y / 4; y++) {
-            PoliceMap[y][x] = STem[x][y];
+            PoliceMap[y][x] = STem[y][x];
         }
     }
 }
@@ -170,14 +170,14 @@ static void SmoothFSMap(void) {
 
             /* Original WiNTown smoothing algorithm */
             edge = (edge >> 2) + FireStMap[y][x];  /* (neighbors/4) + current */
-            STem[x][y] = (Byte)(edge >> 1);        /* divide by 2 - cast to Byte */
+            STem[y][x] = (Byte)(edge >> 1);
         }
     }
 
     /* Copy back to original map */
     for (x = 0; x < WORLD_X / 4; x++) {
         for (y = 0; y < WORLD_Y / 4; y++) {
-            FireStMap[y][x] = STem[x][y];
+            FireStMap[y][x] = STem[y][x];
         }
     }
 }
@@ -190,22 +190,16 @@ static void SmoothTerrain(void) {
         for (y = 0; y < WORLD_Y / 4; y++) {
             z = 0;
 
-            /* Get average of surrounding cells */
-            if (x > 0) {
-                z += Qtem[x - 1][y];
-            }
-            if (x < (WORLD_X / 4 - 1)) {
-                z += Qtem[x + 1][y];
-            }
-            if (y > 0) {
-                z += Qtem[x][y - 1];
-            }
-            if (y < (WORLD_Y / 4 - 1)) {
-                z += Qtem[x][y + 1];
-            }
+            if (x > 0)
+                z += Qtem[y][x - 1];
+            if (x < (WORLD_X / 4 - 1))
+                z += Qtem[y][x + 1];
+            if (y > 0)
+                z += Qtem[y - 1][x];
+            if (y < (WORLD_Y / 4 - 1))
+                z += Qtem[y + 1][x];
 
-            /* Average with central value */
-            TerrainMem[x][y] = (Byte)(((z >> 2) + Qtem[x][y]) >> 1);
+            TerrainMem[y][x] = (Byte)(((z >> 2) + Qtem[y][x]) >> 1);
         }
     }
 }
@@ -350,8 +344,7 @@ void PopDenScan(void) {
                     z = 254;
                 }
 
-                /* Add to temporary density map */
-                tem[x >> 1][y >> 1] = (Byte)z;
+                tem[y >> 1][x >> 1] = (Byte)z;
 
                 /* Track population center of mass */
                 Xtot += x;
@@ -369,7 +362,7 @@ void PopDenScan(void) {
     /* Copy to population density map */
     for (x = 0; x < WORLD_X / 2; x++) {
         for (y = 0; y < WORLD_Y / 2; y++) {
-            PopDensity[y][x] = (Byte)(tem2[x][y] << 1);
+            PopDensity[y][x] = (Byte)(tem2[y][x] << 1);
         }
     }
 
@@ -401,7 +394,7 @@ void PTLScan(void) {
     /* Initialize terrain map */
     for (x = 0; x < WORLD_X / 4; x++) {
         for (y = 0; y < WORLD_Y / 4; y++) {
-            Qtem[x][y] = 0;
+            Qtem[y][x] = 0;
         }
     }
 
@@ -427,7 +420,7 @@ void PTLScan(void) {
                         if (loc) {
                             if (loc < RUBBLE) {
                                 /* Terrain (trees, water) increases terrain value */
-                                Qtem[x >> 1][y >> 1] += 15;
+                                Qtem[y >> 1][x >> 1] += 15;
                                 continue;
                             }
 
@@ -448,15 +441,14 @@ void PTLScan(void) {
                 Plevel = 255;
             }
 
-            /* Store in temporary array */
-            tem[x][y] = (Byte)Plevel;
+            tem[y][x] = (Byte)Plevel;
 
             /* Calculate land value if there are developed tiles */
             if (LVflag) {
                 /* Land value equation */
                 dis = 34 - GetDisCC(x, y);
                 dis = dis << 2;
-                dis += (TerrainMem[x >> 1][y >> 1]);
+                dis += (TerrainMem[y >> 1][x >> 1]);
                 dis -= (PollutionMem[y][x]);
 
                 /* Crime reduces land value */
@@ -502,7 +494,7 @@ void PTLScan(void) {
 
     for (x = 0; x < WORLD_X / 2; x++) {
         for (y = 0; y < WORLD_Y / 2; y++) {
-            z = tem[x][y];
+            z = tem[y][x];
             PollutionMem[y][x] = (Byte)z;
 
             if (z) {

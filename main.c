@@ -3800,11 +3800,24 @@ int loadFile(char *filename) {
         l = (QUAD)MiscHis[9] | ((QUAD)MiscHis[8] << 16);
         CityTime = l;
         
-        /* Extract game flags and settings - these were stored as shorts */
+        EMarket = (float)MiscHis[1];
+        ResPop = MiscHis[2];
+        ComPop = MiscHis[3];
+        IndPop = MiscHis[4];
+        RValve = MiscHis[5];
+        CValve = MiscHis[6];
+        IValve = MiscHis[7];
+        CrimeRamp = MiscHis[10];
+        PolluteRamp = MiscHis[11];
+        LVAverage = MiscHis[12];
+        CrimeAverage = MiscHis[13];
+        PollutionAverage = MiscHis[14];
+        GameLevel = MiscHis[15];
+        CityClass = MiscHis[16];
+        CityScore = MiscHis[17];
+
         AutoBulldoze = MiscHis[52];
         AutoBudget = MiscHis[53];
-        /* MiscHis[54] = AutoGo - not used in WiNTown */
-        /* MiscHis[55] = UserSoundOn - not used in WiNTown */
         TaxRate = MiscHis[56];
         SimSpeed = MiscHis[57];
         
@@ -3887,11 +3900,26 @@ int saveFile(char *filename) {
     l = CityTime;
     *(QUAD *)(MiscHis + 8) = l;
 
-    /* Store game flags and settings */
+    MiscHis[1] = (short)EMarket;
+    MiscHis[2] = ResPop;
+    MiscHis[3] = ComPop;
+    MiscHis[4] = IndPop;
+    MiscHis[5] = RValve;
+    MiscHis[6] = CValve;
+    MiscHis[7] = IValve;
+    MiscHis[10] = CrimeRamp;
+    MiscHis[11] = PolluteRamp;
+    MiscHis[12] = LVAverage;
+    MiscHis[13] = CrimeAverage;
+    MiscHis[14] = PollutionAverage;
+    MiscHis[15] = GameLevel;
+    MiscHis[16] = CityClass;
+    MiscHis[17] = CityScore;
+
     MiscHis[52] = AutoBulldoze;
     MiscHis[53] = AutoBudget;
-    MiscHis[54] = 0; /* AutoGo - not implemented in WiNTown */
-    MiscHis[55] = 1; /* UserSoundOn - not implemented in WiNTown, default to on */
+    MiscHis[54] = 0;
+    MiscHis[55] = 1;
     MiscHis[56] = TaxRate;
     MiscHis[57] = SimSpeed;
 
