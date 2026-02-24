@@ -48,7 +48,7 @@ static int RoadTest(int x) {
     x = x & LOMASK;
 
     /* Not a road or rail if it's outside the valid ranges */
-    if (x < ROADBASE || x > LASTRAIL || (x >= POWERBASE && x < RAILBASE)) {
+    if (x < ROADBASE || x > LASTRAIL || (x >= POWERBASE && x <= RAILHPOWERV)) {
         return 0;
     }
 
@@ -191,23 +191,23 @@ static int TryGo(int z) {
             continue;
         }
 
-        /* Move in this direction */
         switch (realdir) {
-        case 0:
-            SMapY--;
-            break;
-        case 1:
-            SMapX++;
-            break;
-        case 2:
-            SMapY++;
-            break;
-        case 3:
-            SMapX--;
-            break;
+        case 0: SMapY--; break;
+        case 1: SMapX++; break;
+        case 2: SMapY++; break;
+        case 3: SMapX--; break;
         }
 
-        /* Remember the direction we came from */
+        if (!BOUNDS_CHECK(SMapX, SMapY)) {
+            switch (realdir) {
+            case 0: SMapY++; break;
+            case 1: SMapX--; break;
+            case 2: SMapY--; break;
+            case 3: SMapX++; break;
+            }
+            continue;
+        }
+
         LDir = (realdir + 2) & 3;
 
         /* Save position every other move */

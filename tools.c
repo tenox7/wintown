@@ -1708,7 +1708,12 @@ LRESULT CALLBACK ToolbarProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
             TextOut(hdc, 10, textY, buffer, lstrlen(buffer));
 
             if (toolCost > 0) {
-                wsprintf(buffer, "Cost: $%d", toolCost);
+                {
+                    extern char *FormatNumber(long n, char *buf);
+                    char numBuf[32];
+                    FormatNumber((long)toolCost, numBuf);
+                    wsprintf(buffer, "Cost: $%s", numBuf);
+                }
                 TextOut(hdc, 10, textY + 15, buffer, lstrlen(buffer));
             }
         }

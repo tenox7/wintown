@@ -20,17 +20,19 @@ static int SpriteCycle = 0;
 static short Dx[5] = {0, 4, 0, -4, 0};   /* East, South, West, North, Stop */
 static short Dy[5] = {-4, 0, 4, 0, 0};
 
-/* Movement direction vectors for 8-directional movement (ships, helicopters) */  
-static short BDx[9] = {0, 2, 4, 2, 0, -2, -4, -2, 0};
-static short BDy[9] = {-4, -2, 0, 2, 4, 2, 0, -2, 0};
+/* Boat direction vectors (matching original Micropolis) */
+static short BDx[9] = {0,  0,  1,  1,  1,  0, -1, -1, -1};
+static short BDy[9] = {0, -1, -1,  0,  1,  1,  1,  0, -1};
+static short BPx[9] = {0,  0,  2,  2,  2,  0, -2, -2, -2};
+static short BPy[9] = {0, -2, -2,  0,  2,  2,  2,  0, -2};
 
-/* Precise movement for boats */
-static short BPx[9] = {0, 7, 4, 7, 0, -7, -4, -7, 0};
-static short BPy[9] = {-4, -7, 0, 7, 4, 7, 0, -7, 0};
+/* Helicopter movement vectors (matching original Micropolis) */
+static short HDx[9] = {0,  0,  3,  5,  3,  0, -3, -5, -3};
+static short HDy[9] = {0, -5, -3,  0,  3,  5,  3,  0, -3};
 
-/* Complex movement for aircraft */
-static short CDx[12] = {0, 3, 6, 3, 0, -3, -6, -3, 0, 0, 0, 0};
-static short CDy[12] = {-6, -3, 0, 3, 6, 3, 0, -3, 0, 0, 0, 0};
+/* Airplane movement vectors (matching original Micropolis) */
+static short CDx[12] = {0,  0,  6,  8,  6,  0, -6, -8, -6,  8,  8,  8};
+static short CDy[12] = {0, -8, -6,  0,  6,  8,  6,  0, -6,  0,  0,  0};
 
 /* Animation frames for trains */
 static short TrainPic2[5] = {1, 2, 1, 2, 5};
@@ -340,15 +342,8 @@ void DoTrainSprite(SimSprite *sprite) {
                     sprite->new_dir = dir;
                     sprite->frame = TrainPic2[dir];
                 } else {
-                    /* Derail - unless disasters are disabled */
-                    if (!disastersDisabled) {
-                        ExplodeSprite(sprite);
-                        return;
-                    } else {
-                        /* Just remove the train without explosion */
-                        DestroySprite(sprite);
-                        return;
-                    }
+                    sprite->dir = 4;
+                    sprite->frame = 5;
                 }
             }
         }
@@ -631,16 +626,23 @@ void DoPoliceSprite(SimSprite *sprite) {
 
 /* Explosion sprite behavior */
 void DoExplosion(SimSprite *sprite) {
+    int x, y;
+
     if (sprite->frame == 0) {
-        /* Start fire at explosion site - unless disasters are disabled */
         if (!disastersDisabled) {
-            makeFire(sprite->x >> 4, sprite->y >> 4);
+            x = sprite->x >> 4;
+            y = sprite->y >> 4;
+            makeFire(x, y);
+            makeFire(x - 1, y - 1);
+            makeFire(x + 1, y - 1);
+            makeFire(x - 1, y + 1);
+            makeFire(x + 1, y + 1);
         }
         MakeSound(SOUND_EXPLOSION_HIGH, sprite->x, sprite->y);
     }
-    
+
     sprite->frame++;
-    
+
     if (sprite->frame > 6) {
         DestroySprite(sprite);
     }
@@ -765,13 +767,14 @@ static short GetChar(int x, int y) {
 
 /* Check sprite collision */
 static int CheckSpriteCollision(SimSprite *s1, SimSprite *s2) {
-    int dx, dy, dist;
-    
+    int dx, dy;
+
     dx = s1->x - s2->x;
+    if (dx < 0) dx = -dx;
     dy = s1->y - s2->y;
-    dist = dx * dx + dy * dy;
-    
-    return (dist < 900); /* Collision if within 30 pixels */
+    if (dy < 0) dy = -dy;
+
+    return ((dx + dy) < 30);
 }
 
 /* Check if sprite is out of bounds */
@@ -1043,10 +1046,11 @@ void DoMonsterSprite(SimSprite *sprite) {
     dx = sprite->dest_x - sprite->x;
     dy = sprite->dest_y - sprite->y;
     
-    if (abs(dx) < 32 && abs(dy) < 32) {
-        /* Reached destination - pick new target (high pollution area) */
-        sprite->dest_x = (SimRandom(WORLD_X) << 4);
-        sprite->dest_y = (SimRandom(WORLD_Y) << 4);
+    if (abs(dx) < 18 && abs(dy) < 18) {
+        extern short PolMaxX, PolMaxY;
+        sprite->step = 0;
+        sprite->dest_x = PolMaxX << 4;
+        sprite->dest_y = PolMaxY << 4;
     }
     
     /* Determine movement direction */
@@ -1075,19 +1079,15 @@ void DoMonsterSprite(SimSprite *sprite) {
     }
     sprite->frame = z + 1; /* Frame 1-16 */
     
-    /* Destroy buildings around monster */
-    mapX = (sprite->x + 48) >> 4;
-    mapY = (sprite->y + 16) >> 4;
-    
-    if (mapX >= 1 && mapX < WORLD_X - 1 && mapY >= 1 && mapY < WORLD_Y - 1) {
-        int i, j;
-        /* Destroy 3x3 area */
-        for (i = -1; i <= 1; i++) {
-            for (j = -1; j <= 1; j++) {
-                if (!disastersDisabled) {
-                    makeFire(mapX + i, mapY + j);
-                }
-            }
+    if (!(sprite->count & 3) && !disastersDisabled) {
+        mapX = (sprite->x + 48) >> 4;
+        mapY = (sprite->y + 16) >> 4;
+        if (BOUNDS_CHECK(mapX, mapY)) {
+            makeFire(mapX, mapY);
+            makeFire(mapX - 1, mapY - 1);
+            makeFire(mapX + 1, mapY - 1);
+            makeFire(mapX - 1, mapY + 1);
+            makeFire(mapX + 1, mapY + 1);
         }
     }
 }
@@ -1121,39 +1121,27 @@ void DoTornadoSprite(SimSprite *sprite) {
         return;
     }
     
-    /* Random movement */
-    if (SimRandom(4) == 0) {
-        d = SimRandom(6); /* Use first 6 directions */
-        sprite->x += CDx[d];
-        sprite->y += CDy[d];
-    }
-    
-    /* Update spinning animation */
+    d = SimRandom(6);
+    sprite->x += CDx[d];
+    sprite->y += CDy[d];
+
     z = sprite->frame;
-    if (z == 2) { /* Cycle animation */
-        if (sprite->flag) {
-            z = 3;
-        } else {
-            z = 1;
-        }
+    if (z == 2) {
+        z = sprite->flag ? 3 : 1;
     } else {
-        if (z == 1) {
-            sprite->flag = 1;
-        } else {
-            sprite->flag = 0;
-        }
+        sprite->flag = (z == 1) ? 1 : 0;
         z = 2;
     }
     sprite->frame = z;
-    
-    /* Destroy buildings in tornado's path */
+
     mapX = (sprite->x + 48) >> 4;
     mapY = (sprite->y + 40) >> 4;
-    
-    if (mapX >= 0 && mapX < WORLD_X && mapY >= 0 && mapY < WORLD_Y) {
-        if (!disastersDisabled) {
-            makeFire(mapX, mapY);
-        }
+    if (BOUNDS_CHECK(mapX, mapY) && !disastersDisabled) {
+        makeFire(mapX, mapY);
+        makeFire(mapX - 1, mapY - 1);
+        makeFire(mapX + 1, mapY - 1);
+        makeFire(mapX - 1, mapY + 1);
+        makeFire(mapX + 1, mapY + 1);
     }
 }
 
@@ -1206,9 +1194,8 @@ void MoveSprite(SimSprite *sprite, int movementType) {
             break;
             
         case MOVEMENT_TYPE_HELICOPTER:
-            /* Uses BDx/BDy arrays */
-            newX = sprite->x + BDx[sprite->dir];
-            newY = sprite->y + BDy[sprite->dir];
+            newX = sprite->x + HDx[sprite->dir];
+            newY = sprite->y + HDy[sprite->dir];
             break;
             
         case MOVEMENT_TYPE_BOAT:

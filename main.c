@@ -84,6 +84,7 @@
 
 /* View menu IDs - Budget Window */
 #define IDM_VIEW_BUDGET 8001
+#define IDM_VIEW_EVALUATION 8002
 
 /* Minimap window definitions */
 #define MINIMAP_WINDOW_CLASS "WiNTownMinimapWindow"
@@ -465,6 +466,9 @@ extern void SetValves(void);
 extern const char *GetCityClassName(void);
 extern void RandomlySeedRand(void);
 
+/* Forward declarations */
+void ShowEvaluationWindow(HWND parent);
+
 
 BOOL WINAPI MyPathRemoveFileSpecA(char* path)
 {
@@ -770,9 +774,26 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     return (int)msg.wParam;
 }
 
-/**
- * Adds an entry to the debug log file
- */
+char *FormatNumber(long n, char *buf) {
+    char tmp[32];
+    int len, i, j, neg;
+
+    neg = 0;
+    if (n < 0) { neg = 1; n = -n; }
+    wsprintf(tmp, "%ld", n);
+    len = lstrlen(tmp);
+
+    j = 0;
+    if (neg) buf[j++] = '-';
+    for (i = 0; i < len; i++) {
+        if (i > 0 && ((len - i) % 3) == 0)
+            buf[j++] = ',';
+        buf[j++] = tmp[i];
+    }
+    buf[j] = '\0';
+    return buf;
+}
+
 void addGameLog(const char *format, ...) {
     va_list args;
     char buffer[512];
@@ -1105,15 +1126,18 @@ LRESULT CALLBACK infoWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
         TextOut(hdc, 10, y, buffer, lstrlen(buffer));
         y += 20;
 
-        wsprintf(buffer, "Funds: $%d", (int)TotalFunds);
+        {
+            char numBuf[32];
+            FormatNumber((long)TotalFunds, numBuf);
+            wsprintf(buffer, "Funds: $%s", numBuf);
+        }
         TextOut(hdc, 10, y, buffer, lstrlen(buffer));
         y += 20;
 
-        /* Draw population - handle large values */
-        if (CityPop < 0) {
-            wsprintf(buffer, "Population: ERROR (%ld)", CityPop);
-        } else {
-            wsprintf(buffer, "Population: %ld", CityPop);
+        {
+            char numBuf[32];
+            FormatNumber((long)CityPop, numBuf);
+            wsprintf(buffer, "Population: %s", numBuf);
         }
         TextOut(hdc, 10, y, buffer, lstrlen(buffer));
         y += 20;
@@ -2665,6 +2689,10 @@ LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         /* View menu - Budget Window */
         case IDM_VIEW_BUDGET:
             ShowBudgetWindow(hwnd);
+            return 0;
+
+        case IDM_VIEW_EVALUATION:
+            ShowEvaluationWindow(hwnd);
             return 0;
 
         /* Settings menu items */
@@ -5341,6 +5369,7 @@ HMENU createMainMenu(void) {
     /* Check it by default since the minimap window is shown on startup */
     CheckMenuItem(hViewMenu, IDM_VIEW_MINIMAPWINDOW, MF_CHECKED);
     AppendMenu(hViewMenu, MF_STRING, IDM_VIEW_BUDGET, "&Budget Window");
+    AppendMenu(hViewMenu, MF_STRING, IDM_VIEW_EVALUATION, "&Evaluation Window");
     AppendMenu(hViewMenu, MF_STRING, IDM_VIEW_CHARTSWINDOW, "&Charts Window");
     /* Check it by default since the charts window is shown on startup */
     CheckMenuItem(hViewMenu, IDM_VIEW_CHARTSWINDOW, MF_CHECKED);
@@ -5749,28 +5778,36 @@ BOOL CALLBACK BudgetDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
         totalExpenses = roadSpending + fireSpending + policeSpending;
         cashFlow = TaxFund - totalExpenses;
         
-        /* Update financial display labels */
-        wsprintf(buffer, "Taxes Collected: $%d", (int)TaxFund);
-        SetDlgItemText(hDlg, IDC_TAXES_COLLECTED, buffer);
-        
-        wsprintf(buffer, "Cash Flow: %s$%d", cashFlow >= 0 ? "+" : "", (int)cashFlow);
-        SetDlgItemText(hDlg, IDC_CASH_FLOW, buffer);
-        
-        wsprintf(buffer, "Previous Funds: $%d", (int)TotalFunds);
-        SetDlgItemText(hDlg, IDC_PREVIOUS_FUNDS, buffer);
-        
-        wsprintf(buffer, "Current Funds: $%d", (int)(TotalFunds + cashFlow));
-        SetDlgItemText(hDlg, IDC_CURRENT_FUNDS, buffer);
-        
-        /* Update percentage display */
-        wsprintf(buffer, "$%d", (int)roadSpending);
-        SetDlgItemText(hDlg, IDC_ROAD_PERCENT, buffer);
-        
-        wsprintf(buffer, "$%d", (int)fireSpending);
-        SetDlgItemText(hDlg, IDC_FIRE_PERCENT, buffer);
-        
-        wsprintf(buffer, "$%d", (int)policeSpending);
-        SetDlgItemText(hDlg, IDC_POLICE_PERCENT, buffer);
+        {
+            char numBuf[32];
+            FormatNumber((long)TaxFund, numBuf);
+            wsprintf(buffer, "Taxes Collected: $%s", numBuf);
+            SetDlgItemText(hDlg, IDC_TAXES_COLLECTED, buffer);
+
+            wsprintf(buffer, "Cash Flow: %s$%s", cashFlow >= 0 ? "+" : "",
+                     FormatNumber((long)(cashFlow < 0 ? -cashFlow : cashFlow), numBuf));
+            SetDlgItemText(hDlg, IDC_CASH_FLOW, buffer);
+
+            FormatNumber((long)TotalFunds, numBuf);
+            wsprintf(buffer, "Previous Funds: $%s", numBuf);
+            SetDlgItemText(hDlg, IDC_PREVIOUS_FUNDS, buffer);
+
+            FormatNumber((long)(TotalFunds + cashFlow), numBuf);
+            wsprintf(buffer, "Current Funds: $%s", numBuf);
+            SetDlgItemText(hDlg, IDC_CURRENT_FUNDS, buffer);
+
+            FormatNumber((long)roadSpending, numBuf);
+            wsprintf(buffer, "$%s", numBuf);
+            SetDlgItemText(hDlg, IDC_ROAD_PERCENT, buffer);
+
+            FormatNumber((long)fireSpending, numBuf);
+            wsprintf(buffer, "$%s", numBuf);
+            SetDlgItemText(hDlg, IDC_FIRE_PERCENT, buffer);
+
+            FormatNumber((long)policeSpending, numBuf);
+            wsprintf(buffer, "$%s", numBuf);
+            SetDlgItemText(hDlg, IDC_POLICE_PERCENT, buffer);
+        }
         return TRUE;
         
     case WM_HSCROLL:
@@ -5893,6 +5930,91 @@ void ShowBudgetWindow(HWND parent) {
 /* Show budget window during budget cycle and wait for user input */
 int ShowBudgetWindowAndWait(HWND parent) {
     return (int)DialogBox(GetModuleHandle(NULL), MAKEINTRESOURCE(IDD_BUDGET), parent, (DLGPROC)BudgetDlgProc);
+}
+
+/* Evaluation dialog */
+extern const char *GetProblemText(int problemIndex);
+extern void GetTopProblems(short problems[4]);
+extern int GetProblemVotes(int problemIndex);
+extern QUAD GetCityAssessedValue(void);
+
+BOOL CALLBACK EvalDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
+    char buffer[128];
+    char numBuf[32];
+    short problems[4];
+    int i;
+
+    static char *levelStr[3] = {"Easy", "Medium", "Hard"};
+
+    switch (message) {
+    case WM_INITDIALOG:
+        wsprintf(buffer, "City Evaluation  %d", CityYear);
+        SetDlgItemText(hDlg, IDC_EVAL_TITLE, buffer);
+
+        wsprintf(buffer, "Yes: %d%%", CityYes);
+        SetDlgItemText(hDlg, IDC_EVAL_YES, buffer);
+        wsprintf(buffer, "No: %d%%", CityNo);
+        SetDlgItemText(hDlg, IDC_EVAL_NO, buffer);
+
+        GetTopProblems(problems);
+        for (i = 0; i < 4; i++) {
+            int votes = GetProblemVotes(problems[i]);
+            if (votes > 0) {
+                SetDlgItemText(hDlg, IDC_EVAL_PROB0 + i, GetProblemText(problems[i]));
+                wsprintf(buffer, "%d%%", votes);
+                SetDlgItemText(hDlg, IDC_EVAL_PROBPCT0 + i, buffer);
+            }
+        }
+
+        FormatNumber((long)CityPop, numBuf);
+        SetDlgItemText(hDlg, IDC_EVAL_POP, numBuf);
+
+        {
+            long delta = (long)(CityPop - PrevCityPop);
+            wsprintf(buffer, "%s%s", delta >= 0 ? "+" : "",
+                     FormatNumber(delta < 0 ? -delta : delta, numBuf));
+            if (delta < 0) {
+                wsprintf(buffer, "-%s", numBuf);
+            }
+        }
+        SetDlgItemText(hDlg, IDC_EVAL_DELTA, buffer);
+
+        {
+            QUAD val = GetCityAssessedValue();
+            FormatNumber((long)(val / 1000), numBuf);
+            wsprintf(buffer, "$%s", numBuf);
+        }
+        SetDlgItemText(hDlg, IDC_EVAL_ASSESSED, buffer);
+
+        SetDlgItemText(hDlg, IDC_EVAL_CATEGORY, GetCityClassName());
+
+        if (GameLevel >= 0 && GameLevel <= 2)
+            SetDlgItemText(hDlg, IDC_EVAL_GAMELEVEL, levelStr[GameLevel]);
+
+        wsprintf(buffer, "%d", CityScore);
+        SetDlgItemText(hDlg, IDC_EVAL_SCORE, buffer);
+
+        wsprintf(buffer, "%s%d", deltaCityScore >= 0 ? "+" : "", deltaCityScore);
+        SetDlgItemText(hDlg, IDC_EVAL_SCORECHANGE, buffer);
+
+        return TRUE;
+
+    case WM_COMMAND:
+        if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL) {
+            EndDialog(hDlg, IDOK);
+            return TRUE;
+        }
+        break;
+
+    case WM_CLOSE:
+        EndDialog(hDlg, IDOK);
+        return TRUE;
+    }
+    return FALSE;
+}
+
+void ShowEvaluationWindow(HWND parent) {
+    DialogBox(GetModuleHandle(NULL), MAKEINTRESOURCE(IDD_EVALUATION), parent, (DLGPROC)EvalDlgProc);
 }
 
 /* Enhanced speed control functions */

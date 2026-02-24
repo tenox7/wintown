@@ -17,6 +17,9 @@
 extern void addGameLog(const char *format, ...);
 extern void addDebugLog(const char *format, ...);
 
+/* Forward declarations */
+void Take2Census(void);
+
 /* External cheat flags */
 extern int disastersDisabled;
 
@@ -451,6 +454,11 @@ void Simulate(int mod16) {
         if ((Scycle % CENSUSRATE) == 0) {
             addDebugLog("Taking census, Scycle=%d", Scycle);
             TakeCensus();
+        }
+
+        /* Every 48 cycles (CENSUSRATE*12), take long-term census for 120-year graphs */
+        if ((Scycle % (CENSUSRATE * 12)) == 0) {
+            Take2Census();
         }
 
         /* Every 48 time units, do tax collection and evaluation (as in original) */
@@ -998,6 +1006,34 @@ void TakeCensus(void) {
     /* Note: MiscHis will be updated in the specific subsystem implementations */
 }
 
+void Take2Census(void) {
+    int x;
+    short Res2HisMax, Com2HisMax, Ind2HisMax;
+
+    Res2HisMax = 0;
+    Com2HisMax = 0;
+    Ind2HisMax = 0;
+
+    for (x = HISTLEN / 2 - 2; x >= HISTLEN / 4; x--) {
+        ResHis[x + 1] = ResHis[x];
+        if (ResHis[x] > Res2HisMax) Res2HisMax = ResHis[x];
+        ComHis[x + 1] = ComHis[x];
+        if (ComHis[x] > Com2HisMax) Com2HisMax = ComHis[x];
+        IndHis[x + 1] = IndHis[x];
+        if (IndHis[x] > Ind2HisMax) Ind2HisMax = IndHis[x];
+        CrimeHis[x + 1] = CrimeHis[x];
+        PollutionHis[x + 1] = PollutionHis[x];
+        MoneyHis[x + 1] = MoneyHis[x];
+    }
+
+    ResHis[HISTLEN / 4] = ResPop / 8;
+    ComHis[HISTLEN / 4] = ComPop;
+    IndHis[HISTLEN / 4] = IndPop;
+    CrimeHis[HISTLEN / 4] = CrimeHis[0];
+    PollutionHis[HISTLEN / 4] = PollutionHis[0];
+    MoneyHis[HISTLEN / 4] = MoneyHis[0];
+}
+
 void DecROGMem(void) {
     int x, y;
     short z;
@@ -1101,6 +1137,114 @@ static void DoRadTile(void) {
         Map[SMapY][SMapX] = DIRT;
 }
 
+static short Rand16(void) {
+    return (short)(rand() & 0xFFFF);
+}
+
+static int GetBoatDis(void) {
+    int dist, mx, my, dx, dy, i;
+    SimSprite *sprite;
+
+    dist = 99999;
+    mx = (SMapX << 4) + 8;
+    my = (SMapY << 4) + 8;
+
+    for (i = 0; i < MAX_SPRITES; i++) {
+        sprite = GetSprite(i);
+        if (!sprite) continue;
+        if (sprite->type != SPRITE_SHIP || sprite->frame == 0) continue;
+        dx = sprite->x + sprite->x_hot - mx;
+        if (dx < 0) dx = -dx;
+        dy = sprite->y + sprite->y_hot - my;
+        if (dy < 0) dy = -dy;
+        dx += dy;
+        if (dx < dist) dist = dx;
+    }
+    return dist;
+}
+
+static int DoBridge(void) {
+    static short HDx[7] = { -2,  2, -2, -1,  0,  1,  2 };
+    static short HDy[7] = { -1, -1,  0,  0,  0,  0,  0 };
+    static short HBRTAB[7] = {
+        HBRDG1 | BULLBIT, HBRDG3 | BULLBIT, HBRDG0 | BULLBIT,
+        RIVER, BRWH | BULLBIT, RIVER, HBRDG2 | BULLBIT };
+    static short HBRTAB2[7] = {
+        RIVER, RIVER, HBRIDGE | BULLBIT, HBRIDGE | BULLBIT, HBRIDGE | BULLBIT,
+        HBRIDGE | BULLBIT, HBRIDGE | BULLBIT };
+    static short VDx[7] = {  0,  1,  0,  0,  0,  0,  1 };
+    static short VDy[7] = { -2, -2, -1,  0,  1,  2,  2 };
+    static short VBRTAB[7] = {
+        VBRDG0 | BULLBIT, VBRDG1 | BULLBIT, RIVER, BRWV | BULLBIT,
+        RIVER, VBRDG2 | BULLBIT, VBRDG3 | BULLBIT };
+    static short VBRTAB2[7] = {
+        VBRIDGE | BULLBIT, RIVER, VBRIDGE | BULLBIT, VBRIDGE | BULLBIT,
+        VBRIDGE | BULLBIT, VBRIDGE | BULLBIT, RIVER };
+    int z, x, y, MPtem;
+
+    if (CChr9 == BRWV) {
+        if (!(Rand16() & 3) && (GetBoatDis() > 340)) {
+            for (z = 0; z < 7; z++) {
+                x = SMapX + VDx[z];
+                y = SMapY + VDy[z];
+                if (BOUNDS_CHECK(x, y))
+                    if ((Map[y][x] & LOMASK) == (VBRTAB[z] & LOMASK))
+                        Map[y][x] = VBRTAB2[z];
+            }
+        }
+        return 1;
+    }
+    if (CChr9 == BRWH) {
+        if (!(Rand16() & 3) && (GetBoatDis() > 340)) {
+            for (z = 0; z < 7; z++) {
+                x = SMapX + HDx[z];
+                y = SMapY + HDy[z];
+                if (BOUNDS_CHECK(x, y))
+                    if ((Map[y][x] & LOMASK) == (HBRTAB[z] & LOMASK))
+                        Map[y][x] = HBRTAB2[z];
+            }
+        }
+        return 1;
+    }
+
+    if ((GetBoatDis() < 300) || !(Rand16() & 7)) {
+        if (CChr9 & 1) {
+            if (SMapX < (WORLD_X - 1))
+                if (Map[SMapY][SMapX + 1] == CHANNEL) {
+                    for (z = 0; z < 7; z++) {
+                        x = SMapX + VDx[z];
+                        y = SMapY + VDy[z];
+                        if (BOUNDS_CHECK(x, y)) {
+                            MPtem = Map[y][x];
+                            if ((MPtem == CHANNEL) ||
+                                ((MPtem & 15) == (VBRTAB2[z] & 15)))
+                                Map[y][x] = VBRTAB[z];
+                        }
+                    }
+                    return 1;
+                }
+            return 0;
+        } else {
+            if (SMapY > 0)
+                if (Map[SMapY - 1][SMapX] == CHANNEL) {
+                    for (z = 0; z < 7; z++) {
+                        x = SMapX + HDx[z];
+                        y = SMapY + HDy[z];
+                        if (BOUNDS_CHECK(x, y)) {
+                            MPtem = Map[y][x];
+                            if (((MPtem & 15) == (HBRTAB2[z] & 15)) ||
+                                (MPtem == CHANNEL))
+                                Map[y][x] = HBRTAB[z];
+                        }
+                    }
+                    return 1;
+                }
+            return 0;
+        }
+    }
+    return 0;
+}
+
 static void DoRoadScan(void) {
     short Density, tden, z;
     static short DenTab[3] = {ROADBASE, LTRFBASE, HTRFBASE};
@@ -1123,6 +1267,7 @@ static void DoRoadScan(void) {
 
     if (!(CChr & BURNBIT)) {
         RoadTotal += 4;
+        if (DoBridge()) return;
         return;
     }
 
