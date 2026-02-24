@@ -21,6 +21,9 @@ extern int SimRandom(int range);
 extern HWND hwndMain;
 extern short Map[WORLD_Y][WORLD_X];
 
+/* Forward declarations */
+static void doMeltdown(int sx, int sy);
+
 /* Common movement direction arrays */
 static const short xDelta[4] = {0, 1, 0, -1};
 static const short yDelta[4] = {-1, 0, 1, 0};
@@ -125,26 +128,23 @@ void makeExplosion(int x, int y) {
     InvalidateRect(hwndMain, NULL, FALSE);
 }
 
-/* Start a fire at the given location */
 void makeFire(int x, int y) {
+    short t, z;
+    int i;
 
-    /* Validate coordinates first */
-    if (x < 0 || x >= WORLD_X || y < 0 || y >= WORLD_Y) {
-        return;
+    for (i = 0; i < 40; i++) {
+        x = SimRandom(WORLD_X);
+        y = SimRandom(WORLD_Y);
+        z = Map[y][x];
+        if ((!(z & ZONEBIT)) && (z & BURNBIT)) {
+            t = z & LOMASK;
+            if (t > 21 && t < LASTZONE) {
+                Map[y][x] = FIRE + ANIMBIT + (rand() & 7);
+                ShowNotificationAt(NOTIF_FIRE_REPORTED, x, y);
+                return;
+            }
+        }
     }
-
-    /* Create fire tile with animation and random frame */
-    setMapTile(x, y, FIRE + SimRandom(8), ANIMBIT, TILE_SET_REPLACE, "makeFire-ignite");
-
-    /* Show enhanced notification dialog */
-    ShowNotificationAt(NOTIF_FIRE_REPORTED, x, y);
-
-    /* Log fire */
-    addGameLog("DISASTER: Fire reported at %d,%d!", x, y);
-    addDebugLog("Fire created at coordinates %d,%d", x, y);
-
-    /* Force redraw */
-    InvalidateRect(hwndMain, NULL, FALSE);
 }
 
 /* Check for and spread fires - called from simulation loop */
@@ -292,57 +292,45 @@ void makeFlood(void) {
     InvalidateRect(hwndMain, NULL, FALSE);
 }
 
-/* Create nuclear meltdown disaster */
 void makeMeltdown(void) {
-    int x, y, tx, ty, i;
-    int found = 0;
+    int x, y;
 
-    /* Find nuclear power plant */
-    for (x = 0; x < WORLD_X; x++) {
-        for (y = 0; y < WORLD_Y; y++) {
+    for (x = 0; x < WORLD_X - 1; x++) {
+        for (y = 0; y < WORLD_Y - 1; y++) {
             if ((Map[y][x] & LOMASK) == NUCLEAR) {
-                /* Found nuclear plant - trigger meltdown */
-
-                /* Show enhanced notification dialog */
-                ShowNotificationAt(NOTIF_NUCLEAR_MELTDOWN, x, y);
-
-                /* Log the meltdown */
-                addGameLog("DISASTER: NUCLEAR MELTDOWN!!!");
-                addGameLog("Nuclear power plant at %d,%d has experienced a critical failure!", x,
-                           y);
-                addGameLog("Area is heavily contaminated with radiation!");
-                addDebugLog(
-                    "Nuclear meltdown at coordinates %d,%d, spreading radiation in 20x20 area", x,
-                    y);
-
-                /* Create radiation in a 20x20 area around the plant */
-                for (i = 0; i < 40; i++) {
-                    /* Get random position within 10 tiles of plant */
-                    tx = x + SimRandom(20) - 10;
-                    ty = y + SimRandom(20) - 10;
-
-                    /* Ensure positions are within bounds */
-                    if (BOUNDS_CHECK(tx, ty)) {
-                        /* Add radiation tiles */
-                        setMapTile(tx, ty, RADTILE, 0, TILE_SET_REPLACE, "makeMeltdown-radiation");
-                    }
-                }
-
-                /* Create fire at power plant location */
-                if (BOUNDS_CHECK(x, y)) {
-                    setMapTile(x, y, FIRE + SimRandom(8), ANIMBIT, TILE_SET_REPLACE, "makeMeltdown-fire");
-                }
-
-                found = 1;
-                break;
+                doMeltdown(x, y);
+                return;
             }
         }
-        if (found) {
-            break;
+    }
+}
+
+static void doMeltdown(int sx, int sy) {
+    int x, y, z, t;
+
+    makeExplosion(sx - 1, sy - 1);
+    makeExplosion(sx - 1, sy + 2);
+    makeExplosion(sx + 2, sy - 1);
+    makeExplosion(sx + 2, sy + 2);
+
+    for (x = sx - 1; x < sx + 3; x++) {
+        for (y = sy - 1; y < sy + 3; y++) {
+            if (BOUNDS_CHECK(x, y))
+                Map[y][x] = FIRE + (rand() & 3) + ANIMBIT;
         }
     }
 
-    /* Force redraw */
+    for (z = 0; z < 200; z++) {
+        x = sx - 20 + SimRandom(41);
+        y = sy - 15 + SimRandom(31);
+        if (!BOUNDS_CHECK(x, y)) continue;
+        t = Map[y][x];
+        if (t & ZONEBIT) continue;
+        if ((t & BURNBIT) || (t == 0))
+            Map[y][x] = RADTILE;
+    }
+
+    ShowNotificationAt(NOTIF_NUCLEAR_MELTDOWN, sx, sy);
     InvalidateRect(hwndMain, NULL, FALSE);
 }
 

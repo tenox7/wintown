@@ -336,47 +336,19 @@ int MakeTraffic(int zoneType) {
 
 /* Decrease traffic values over time */
 void DecTrafficMap(void) {
-    int x, y;
-    int fullX, fullY; /* Full-sized map coordinates */
-    int dx, dy;       /* Offsets within density cell */
-    int mapX, mapY;   /* Actual map coordinates */
-    int tile;         /* Tile value */
+    int x, y, z;
 
     for (y = 0; y < WORLD_Y / 2; y++) {
         for (x = 0; x < WORLD_X / 2; x++) {
-            if (TrfDensity[y][x] > 0) {
-                /* Gradually decrease traffic */
-                TrfDensity[y][x] = (Byte)(TrfDensity[y][x] - (TrfDensity[y][x] / 8 + 1));
-
-                /* If traffic decreases to zero, make sure to remove animation bits */
-                if (TrfDensity[y][x] == 0) {
-                    /* Clear animation bits in corresponding full-size map tiles */
-                    fullX = x * 2;
-                    fullY = y * 2;
-
-                    for (dy = 0; dy < 2; dy++) {
-                        for (dx = 0; dx < 2; dx++) {
-                            mapX = fullX + dx;
-                            mapY = fullY + dy;
-
-                            if (mapX < WORLD_X && mapY < WORLD_Y) {
-                                tile = Map[mapY][mapX] & LOMASK;
-
-                                /* Only update road tiles */
-                                if (tile >= ROADBASE && tile <= LASTROAD) {
-                                    /* If this is a heavy traffic tile, convert back to normal road
-                                     */
-                                    if (tile >= HTRFBASE) {
-                                        setMapTile(mapX, mapY, tile - HTRFBASE + ROADBASE, 0, TILE_SET_PRESERVE, "DecTrafficMap-downgrade");
-                                    } else {
-                                        /* Otherwise just clear animation bit */
-                                        setMapTile(mapX, mapY, 0, ANIMBIT, TILE_CLEAR_FLAGS, "DecTrafficMap-clear");
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+            z = TrfDensity[y][x];
+            if (!z) continue;
+            if (z > 24) {
+                if (z > 200)
+                    TrfDensity[y][x] = (Byte)(z - 34);
+                else
+                    TrfDensity[y][x] = (Byte)(z - 24);
+            } else {
+                TrfDensity[y][x] = 0;
             }
         }
     }

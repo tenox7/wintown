@@ -35,12 +35,12 @@ static short ProblemOrder[4];       /* Top 4 problems, in order */
 static long deltaCityPop;           /* Population change */
 static QUAD CityAssValue;           /* City assessed value */
 static short AverageCityScore;      /* Average score over time */
-static int HospPop;                 /* Hospital population count */
-static int ChurchPop;               /* Church population count */
+int HospPop;
+int ChurchPop;
 int NeedHosp = 0;                   /* Hospital need: 1=need, 0=ok, -1=excess */
 int NeedChurch = 0;                 /* Church need: 1=need, 0=ok, -1=excess */
-static int NuclearPop;              /* Nuclear plant count */
-static int CoalPop;                 /* Coal plant count */
+extern int NuclearPop;
+extern int CoalPop;
 
 /* Function prototypes */
 static void GetAssValue(void);

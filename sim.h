@@ -397,12 +397,14 @@ extern int PwrdZCnt;     /* Number of powered zones */
 extern int UnpwrdZCnt;   /* Number of unpowered zones */
 extern int RoadTotal;    /* Number of road tiles */
 extern int RailTotal;    /* Number of rail tiles */
-extern int FirePop;      /* Number of fire station zones */
+extern int FirePop;      /* Number of burning fire tiles */
+extern int FireStPop;    /* Number of fire station zones */
 extern int PolicePop;    /* Number of police station zones */
 extern int StadiumPop;   /* Number of stadium tiles */
 extern int PortPop;      /* Number of seaport tiles */
 extern int APortPop;     /* Number of airport tiles */
 extern int NuclearPop;   /* Number of nuclear plant tiles */
+extern int CoalPop;      /* Number of coal plant tiles */
 
 /* External effects */
 extern int RoadEffect;   /* Road maintenance effectiveness (a function of funding) */
@@ -424,6 +426,7 @@ extern float EMarket;
 extern short CrimeRamp;
 extern short PolluteRamp;
 extern short CashFlow;
+extern short AvCityTax;
 
 /* Disasters */
 extern short DisasterEvent; /* Current disaster type (0=none) - defined in scenarios.c */
@@ -433,6 +436,8 @@ extern int DisastersEnabled; /* Enable/disable disasters (0=disabled, 1=enabled)
 extern int FloodCnt;        /* Flood countdown timer */
 extern int NeedHosp;        /* Hospital need: 1=need, 0=ok, -1=excess */
 extern int NeedChurch;      /* Church need: 1=need, 0=ok, -1=excess */
+extern int HospPop;         /* Hospital population count */
+extern int ChurchPop;       /* Church population count */
 
 /* Difficulty level multiplier tables - based on original WiNTown */
 extern float DifficultyTaxEfficiency[3];     /* Tax revenue multipliers [Easy, Medium, Hard] */

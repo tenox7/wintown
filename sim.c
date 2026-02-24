@@ -19,6 +19,8 @@ extern void addDebugLog(const char *format, ...);
 
 /* Forward declarations */
 void Take2Census(void);
+static void SetFire(void);
+static void DoDisasters(void);
 
 /* External cheat flags */
 extern int disastersDisabled;
@@ -76,7 +78,7 @@ int ComZPop = 0;
 int IndZPop = 0;
 int CoalPop = 0;
 int FireStPop = 0;
-/* CityTax variable removed - use TaxRate directly */
+short AvCityTax = 0;
 
 /* Counters */
 int Scycle = 0;
@@ -361,8 +363,8 @@ void Simulate(int mod16) {
             Scycle = 0;
         }
         
-        /* Increment time, check for disasters, process valve changes */
         DoTimeStuff();
+        AvCityTax += TaxRate;
 
         if (!(Scycle & 1))
             SetValves();
@@ -413,8 +415,6 @@ void Simulate(int mod16) {
         break;
 
     case 9:
-        if (FloodCnt > 0) FloodCnt--;
-
         /* Update CityPop only when population counters change */
         /* Population counters are now updated directly during map scanning */
         CityPop = CalculateCityPopulation(ResPop, ComPop, IndPop);
@@ -472,7 +472,7 @@ void Simulate(int mod16) {
 
     case 10:
         DecTrafficMap();
-        DecROGMem();
+        if (!(Scycle % 5)) DecROGMem();
 
         /* Calculate traffic average periodically */
         if ((Scycle % 4) == 0) {
@@ -578,46 +578,15 @@ void Simulate(int mod16) {
         break;
 
     case 15:
-        /* Process fire analysis and disasters (at a reduced rate) */
-        if ((Scycle % 4) == 3) {
-            /* Process fire spreading - skip if disasters are disabled */
-            if (!disastersDisabled) {
-                spreadFire();
-            }
+        if (!(Scycle % 2))
+            FireAnalysis();
+        DoDisasters();
 
-            /* Log fire information */
-            if (FirePop > 0) {
-                addDebugLog("Active fires: %d", FirePop);
-            }
-        }
-
-        /* Process disasters */
-        addDebugLog("DISASTER CHECK: Event=%d, Disabled=%d, Case=15", DisasterEvent, disastersDisabled);
-        if (DisasterEvent && !disastersDisabled) {
-            /* Process scenario-based disasters */
-            addDebugLog("CALLING scenarioDisaster()");
-            scenarioDisaster();
-        } else {
-            /* Debug why scenarioDisaster is not being called */
-            static int debugCount = 0;
-            debugCount++;
-            if (debugCount % 100 == 0) { /* Log every 100 cycles */
-                addDebugLog("scenarioDisaster NOT called: Event=%d, Disabled=%d (cycle %d)", 
-                           DisasterEvent, disastersDisabled, debugCount);
-            }
-        }
-        
-        /* Process scenario evaluation */
         if (ScenarioID > 0 && ScoreWait > 0) {
             ScoreWait--;
-            if (ScoreWait == 0) {
-                /* Trigger scenario evaluation */
+            if (ScoreWait == 0)
                 DoScenarioScore(ScoreType);
-            }
         }
-
-        /* Process tile animations again at the end of the cycle */
-        AnimateTiles();
         break;
     }
 }
@@ -676,43 +645,58 @@ void DoTimeStuff(void) {
         /* Removed: artificial fund injection not in original game */
     }
 
-    /* Manage disasters */
-    if (disastersDisabled || !DisastersEnabled) {
-        /* Clear any active disasters if cheat is enabled or disasters disabled */
-        DisasterEvent = 0;
-        DisasterWait = 0;
-    } else if (DisasterEvent) {
-        DisasterWait = 0;
-    } else {
-        if (DisasterWait > 0) {
-            DisasterWait--;
-        } else {
-            /* Check for random disasters based on difficulty level */
-            if (SimRandom(DifficultyDisasterChance[GameLevel]) == 0) {
-                /* Choose a disaster type */
-                switch (SimRandom(8)) {
-                case 0:
-                case 1:
-                    makeFlood();
-                    break;
-                case 2:
-                case 3:
-                    makeFire(SimRandom(WORLD_X), SimRandom(WORLD_Y));
-                    break;
-                case 4:
-                case 5:
-                    makeFire(SimRandom(WORLD_X), SimRandom(WORLD_Y));
-                    break;
-                case 6:
-                    makeTornado();
-                    break;
-                case 7:
-                    doEarthquake();
-                    break;
-                }
-            }
-            /* Reset disaster wait period using difficulty-based timing */
-            DisasterWait = SimRandom(DifficultyDisasterChance[GameLevel] / 10) + (DifficultyDisasterChance[GameLevel] / 20);
+}
+
+static void SetFire(void) {
+    int x, y;
+    short z;
+
+    x = SimRandom(WORLD_X);
+    y = SimRandom(WORLD_Y);
+    z = Map[y][x];
+    if (z & ZONEBIT) return;
+    z = z & LOMASK;
+    if (z > LHTHR && z < LASTZONE)
+        Map[y][x] = FIRE + ANIMBIT + (rand() & 7);
+}
+
+static void DoDisasters(void) {
+    static short DisChance[3] = {10 * 48, 5 * 48, 60};
+    short x;
+
+    if (FloodCnt) FloodCnt--;
+
+    if (DisasterEvent)
+        scenarioDisaster();
+
+    x = (short)GameLevel;
+    if (x > 2) x = 0;
+
+    if (disastersDisabled || !DisastersEnabled) return;
+
+    if (SimRandom(DisChance[x] + 1) == 0) {
+        x = (short)SimRandom(9);
+        switch (x) {
+        case 0:
+        case 1:
+            SetFire();
+            break;
+        case 2:
+        case 3:
+            makeFlood();
+            break;
+        case 4:
+            break;
+        case 5:
+            makeTornado();
+            break;
+        case 6:
+            doEarthquake();
+            break;
+        case 7:
+        case 8:
+            if (PollutionAverage > 60) makeMonster();
+            break;
         }
     }
 }
@@ -725,19 +709,30 @@ void SetValves(void) {
     float Employment, Migration, Births, LaborBase, IntMarket;
     float Rratio, Cratio, Iratio, temp;
     float NormResPop, PjResPop, PjComPop, PjIndPop;
-    float hCom, hInd, hRes;
     short z;
-    int prevIdx;
 
-    prevIdx = HISTLEN / 2 - 2;
-    hCom = (float)ComHis[prevIdx];
-    hInd = (float)IndHis[prevIdx];
-    hRes = (float)ResHis[prevIdx];
+    MiscHis[1] = (short)EMarket;
+    MiscHis[2] = (short)ResPop;
+    MiscHis[3] = (short)ComPop;
+    MiscHis[4] = (short)IndPop;
+    MiscHis[5] = RValve;
+    MiscHis[6] = CValve;
+    MiscHis[7] = IValve;
+    MiscHis[10] = CrimeRamp;
+    MiscHis[11] = PolluteRamp;
+    MiscHis[12] = (short)LVAverage;
+    MiscHis[13] = (short)CrimeAverage;
+    MiscHis[14] = (short)PollutionAverage;
+    MiscHis[15] = (short)GameLevel;
+    MiscHis[16] = (short)CityClass;
+    MiscHis[17] = (short)CityScore;
 
     NormResPop = (float)(ResPop / 8);
+    LastTotalPop = TotalPop;
+    TotalPop = (int)(NormResPop + ComPop + IndPop);
 
-    if (NormResPop != 0)
-        Employment = (hCom + hInd) / NormResPop;
+    if (NormResPop)
+        Employment = ((float)ComHis[1] + (float)IndHis[1]) / NormResPop;
     else
         Employment = 1.0f;
 
@@ -745,14 +740,16 @@ void SetValves(void) {
     Births = NormResPop * 0.02f;
     PjResPop = NormResPop + Migration + Births;
 
-    temp = hCom + hInd;
-    if (temp != 0)
-        LaborBase = hRes / temp;
+    temp = (float)ComHis[1] + (float)IndHis[1];
+    if (temp)
+        LaborBase = (float)ResHis[1] / temp;
     else
         LaborBase = 1.0f;
     if (LaborBase > 1.3f) LaborBase = 1.3f;
     if (LaborBase < 0) LaborBase = 0.0f;
 
+    for (z = 0; z < 2; z++)
+        temp = (float)(ResHis[z] + ComHis[z] + IndHis[z]);
     IntMarket = (NormResPop + (float)ComPop + (float)IndPop) / 3.7f;
     PjComPop = IntMarket * LaborBase;
 
@@ -766,11 +763,11 @@ void SetValves(void) {
     PjIndPop = (float)IndPop * LaborBase * temp;
     if (PjIndPop < 5.0f) PjIndPop = 5.0f;
 
-    if (NormResPop != 0) Rratio = PjResPop / NormResPop;
+    if (NormResPop) Rratio = PjResPop / NormResPop;
     else Rratio = 1.3f;
-    if (ComPop != 0) Cratio = PjComPop / (float)ComPop;
+    if (ComPop) Cratio = PjComPop / (float)ComPop;
     else Cratio = PjComPop;
-    if (IndPop != 0) Iratio = PjIndPop / (float)IndPop;
+    if (IndPop) Iratio = PjIndPop / (float)IndPop;
     else Iratio = PjIndPop;
 
     if (Rratio > 2.0f) Rratio = 2.0f;
@@ -829,21 +826,29 @@ void ClearCensus(void) {
                 APortPop, NuclearPop);
     addDebugLog("Power: Powered=%d Unpowered=%d", PwrdZCnt, UnpwrdZCnt);
 
-    /* Infrastructure counts always need resetting */
     RoadTotal = 0;
     RailTotal = 0;
     FirePop = 0;
+    FireStPop = 0;
     PolicePop = 0;
     StadiumPop = 0;
     PortPop = 0;
     APortPop = 0;
     NuclearPop = 0;
-    /* Power zone counts are managed exclusively by DoPowerScan() - do not reset here */
+    CoalPop = 0;
+    HospPop = 0;
+    ChurchPop = 0;
 
-    /* Fire and police maps are now cleared in case 1 before map scanning */
+    {
+        int cx, cy;
+        for (cy = 0; cy < WORLD_Y / 4; cy++) {
+            for (cx = 0; cx < WORLD_X / 4; cx++) {
+                FireStMap[cy][cx] = 0;
+                PoliceMap[cy][cx] = 0;
+            }
+        }
+    }
 
-    /* Reset temporary census variables using unified function */
-    /* This prevents display flicker during census calculation */
     ResetCensusCounters();
 
     /* DEBUG: Increment counter to track census resets */
@@ -851,8 +856,7 @@ void ClearCensus(void) {
 }
 
 void TakeCensus(void) {
-    /* Store city statistics in the history arrays */
-    int i;
+    int i, x;
     QUAD newCityPop;
     char debugMsg[256];
     int growth;
@@ -979,58 +983,53 @@ void TakeCensus(void) {
     /* Save current value for next comparison */
     PrevCityPop = (int)CityPop;
 
-    /* Update graph history */
-    for (i = 0; i < HISTLEN / 2 - 1; i++) {
-        ResHis[i] = ResHis[i + 1];
-        ComHis[i] = ComHis[i + 1];
-        IndHis[i] = IndHis[i + 1];
-        CrimeHis[i] = CrimeHis[i + 1];
-        PollutionHis[i] = PollutionHis[i + 1];
-        MoneyHis[i] = MoneyHis[i + 1];
+    /* Scroll history right - newest at index 0, oldest at end */
+    for (i = 118; i >= 0; i--) {
+        ResHis[i + 1] = ResHis[i];
+        ComHis[i + 1] = ComHis[i];
+        IndHis[i + 1] = IndHis[i];
+        CrimeHis[i + 1] = CrimeHis[i];
+        PollutionHis[i + 1] = PollutionHis[i];
+        MoneyHis[i + 1] = MoneyHis[i];
     }
 
-    /* Update miscellaneous history */
-    for (i = 0; i < MISCHISTLEN / 2 - 1; i++) {
-        MiscHis[i] = MiscHis[i + 1];
-    }
+    ResHis[0] = (short)(ResPop / 8);
+    ComHis[0] = (short)ComPop;
+    IndHis[0] = (short)IndPop;
 
-    /* Record current values in history */
-    ResHis[HISTLEN / 2 - 1] = ResPop / 8;
-    ComHis[HISTLEN / 2 - 1] = ComPop;
-    IndHis[HISTLEN / 2 - 1] = IndPop;
-    CrimeHis[HISTLEN / 2 - 1] = CrimeAverage;
-    PollutionHis[HISTLEN / 2 - 1] = PollutionAverage;
-    MoneyHis[HISTLEN / 2 - 1] = (short)(TotalFunds / 100);
+    CrimeRamp += (short)((CrimeAverage - CrimeRamp) / 4);
+    CrimeHis[0] = CrimeRamp;
 
-    /* Note: MiscHis will be updated in the specific subsystem implementations */
+    PolluteRamp += (short)((PollutionAverage - PolluteRamp) / 4);
+    PollutionHis[0] = PolluteRamp;
+
+    x = (CashFlow / 20) + 128;
+    if (x < 0) x = 0;
+    if (x > 255) x = 255;
+    MoneyHis[0] = (short)x;
+
+    if (CrimeHis[0] > 255) CrimeHis[0] = 255;
+    if (PollutionHis[0] > 255) PollutionHis[0] = 255;
 }
 
 void Take2Census(void) {
     int x;
-    short Res2HisMax, Com2HisMax, Ind2HisMax;
 
-    Res2HisMax = 0;
-    Com2HisMax = 0;
-    Ind2HisMax = 0;
-
-    for (x = HISTLEN / 2 - 2; x >= HISTLEN / 4; x--) {
+    for (x = 238; x >= 120; x--) {
         ResHis[x + 1] = ResHis[x];
-        if (ResHis[x] > Res2HisMax) Res2HisMax = ResHis[x];
         ComHis[x + 1] = ComHis[x];
-        if (ComHis[x] > Com2HisMax) Com2HisMax = ComHis[x];
         IndHis[x + 1] = IndHis[x];
-        if (IndHis[x] > Ind2HisMax) Ind2HisMax = IndHis[x];
         CrimeHis[x + 1] = CrimeHis[x];
         PollutionHis[x + 1] = PollutionHis[x];
         MoneyHis[x + 1] = MoneyHis[x];
     }
 
-    ResHis[HISTLEN / 4] = ResPop / 8;
-    ComHis[HISTLEN / 4] = ComPop;
-    IndHis[HISTLEN / 4] = IndPop;
-    CrimeHis[HISTLEN / 4] = CrimeHis[0];
-    PollutionHis[HISTLEN / 4] = PollutionHis[0];
-    MoneyHis[HISTLEN / 4] = MoneyHis[0];
+    ResHis[120] = (short)(ResPop / 8);
+    ComHis[120] = (short)ComPop;
+    IndHis[120] = (short)IndPop;
+    CrimeHis[120] = CrimeHis[0];
+    PollutionHis[120] = PollutionHis[0];
+    MoneyHis[120] = MoneyHis[0];
 }
 
 void DecROGMem(void) {
@@ -1041,8 +1040,13 @@ void DecROGMem(void) {
         for (x = 0; x < ROGMEM_X; x++) {
             z = RateOGMem[y][x];
             if (z == 0) continue;
-            if (z > 0) z--;
-            else z++;
+            if (z > 0) {
+                z--;
+                if (z > 200) z = 200;
+            } else {
+                z++;
+                if (z < -200) z = -200;
+            }
             RateOGMem[y][x] = z;
         }
     }
@@ -1050,6 +1054,8 @@ void DecROGMem(void) {
 
 static void FireZone(int x, int y, int ch) {
     int XYmax, dx, dy, tx, ty;
+
+    RateOGMem[y >> 3][x >> 3] -= 20;
 
     ch = ch & LOMASK;
     if (ch < PORTBASE)
@@ -1365,38 +1371,31 @@ void MapScan(int x1, int x2, int y1, int y2) {
 /* Calculate city population using standard WiNTown formula */
 QUAD CalculateCityPopulation(int resPop, int comPop, int indPop) {
     QUAD result;
-    
-    /* Sanity check inputs */
+
     if (resPop < 0) resPop = 0;
     if (comPop < 0) comPop = 0;
     if (indPop < 0) indPop = 0;
-    
-    result = (QUAD)resPop + ((QUAD)(comPop + indPop) * 8L);
-    
-    /* Ensure non-negative result */
-    if (result < 0) {
-        result = 0;
-    }
-    
+
+    result = ((QUAD)resPop + ((QUAD)(comPop + indPop) * 8L)) * 20L;
+
+    if (result < 0) result = 0;
+
     return result;
 }
 
 /* Calculate total population for game mechanics */
 int CalculateTotalPopulation(int resPop, int comPop, int indPop) {
     long result;
-    
-    /* Sanity check inputs */
+
     if (resPop < 0) resPop = 0;
     if (comPop < 0) comPop = 0;
     if (indPop < 0) indPop = 0;
-    
-    /* Use standard formula: TotalPop = (Res + Com + Ind) * 8 */
-    result = (long)(resPop + comPop + indPop) * 8L;
-    
-    /* Clamp to int range */
+
+    result = (long)(resPop / 8) + comPop + indPop;
+
     if (result > 32767) result = 32767;
     if (result < 0) result = 0;
-    
+
     return (int)result;
 }
 

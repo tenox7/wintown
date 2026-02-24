@@ -54,45 +54,27 @@ void CollectTax(void) {
     /* No income initially */
     TaxFund = 0;
 
-    /* Calculate funding requirements with difficulty multipliers */
+    CashFlow = 0;
+
+    {
+        short z;
+        z = AvCityTax / 48;
+        AvCityTax = 0;
+    }
+
     RoadFund = (QUAD)((RoadTotal + (RailTotal * 2)) * DifficultyMaintenanceCost[GameLevel]);
-    FireFund = FirePop * 100;     /* $100 per fire station */
-    PoliceFund = PolicePop * 100; /* $100 per police station */
+    FireFund = FireStPop * 100;
+    PoliceFund = PolicePop * 100;
 
-    /* Log funding requirements */
-    addDebugLog("Annual budget requirements:");
-    addDebugLog("Roads: $%d (%d tiles, %.1fx difficulty)", (int)RoadFund, RoadTotal + RailTotal, DifficultyMaintenanceCost[GameLevel]);
-    addDebugLog("Fire: $%d (%d stations)", (int)FireFund, FirePop);
-    addDebugLog("Police: $%d (%d stations)", (int)PoliceFund, PolicePop);
+    TaxFund = (QUAD)(((QUAD)TotalPop * LVAverage / 120) * TaxRate * DifficultyTaxEfficiency[GameLevel]);
 
-    /* Only process budget if there are people to tax */
     if (TotalPop > 0) {
-        float taxPop;
-        taxPop = ((float)ResPop + (float)ComPop + (float)IndPop) / 3.0f;
-        TaxFund = (QUAD)((taxPop * LVAverage / 120) * TaxRate * DifficultyTaxEfficiency[GameLevel]);
-
-        /* Log tax collection */
-        addGameLog("Annual tax collection: $%d", (int)TaxFund);
-        addDebugLog("Tax details: Rate %d%%, Total pop %d, LV avg %d, Difficulty modifier %.1f", 
-                    TaxRate, TotalPop, LVAverage, DifficultyTaxEfficiency[GameLevel]);
-
-        /* Add funds to treasury */
-        Spend(-TaxFund);
-
-        /* Update budget to allocate available funds */
+        CashFlow = (short)(TaxFund - (PoliceFund + FireFund + RoadFund));
         DoBudget();
     } else {
-        /* No population - set default service effects without budget processing */
         RoadEffect = 32;
         PoliceEffect = 1000;
         FireEffect = 1000;
-        
-        /* Reset spending to zero */
-        RoadSpend = 0;
-        PoliceSpend = 0;
-        FireSpend = 0;
-        
-        addDebugLog("No population - skipping budget processing, using default effects");
     }
 }
 
@@ -103,16 +85,8 @@ void Spend(QUAD amount) {
     /* Add to treasury - negative values increase funds */
     TotalFunds -= amount;
 
-    /* Ensure funds never go below zero */
     if (TotalFunds < 0) {
-        /* Show enhanced notification dialog */
         ShowNotification(NOTIF_CITY_BROKE);
-        
-        /* Log funds depleted */
-        addGameLog("FINANCIAL CRISIS: City treasury is empty!");
-        addDebugLog("Funds depleted: Attempted to spend $%d with only $%d available", (int)amount,
-                    (int)oldFunds);
-        TotalFunds = 0;
     }
 
     /* Log major spending/income */

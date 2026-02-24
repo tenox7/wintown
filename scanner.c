@@ -554,8 +554,7 @@ void CrimeScan(void) {
                     z = 300;
                 }
 
-                /* Police stations reduce crime */
-                z -= PoliceMap[y >> 2][x >> 2];
+                z -= PoliceMap[y >> 1][x >> 1];
 
                 /* Ensure crime values are in range 0-250 */
                 if (z > 250) {
