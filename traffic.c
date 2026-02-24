@@ -276,8 +276,7 @@ static void SetTrafMem(void) {
                 z = TrfDensity[ty][tx];
                 z += 50;
 
-                /* Cap at maximum value */
-                if (z > 240) {
+                if (z > 240 && !SimRandom(5)) {
                     z = 240;
                     TrafMaxX = SMapX << 4;
                     TrafMaxY = SMapY << 4;

@@ -9,8 +9,8 @@
 #include <windows.h>
 
 /* Internal state variables */
-static short CCx, CCy;             /* City center X and Y coordinates */
-static short CCx2, CCy2;           /* City center coordinates, divided by 2 */
+short CCx, CCy;
+static short CCx2, CCy2;
 short PolMaxX, PolMaxY;            /* Coordinates of highest pollution */
 static short CrimeMaxX, CrimeMaxY; /* Coordinates of highest crime */
 

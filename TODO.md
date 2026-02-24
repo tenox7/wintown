@@ -9,10 +9,13 @@
 - Auto Bulldoze
 - Trains not working
 - Ships not working
+- Cheats, disable disasters, add more money etc
 
 ## Bugs
 - Bridges, power over water
 - Minimap stats not working: fire, police
+- Power distribution issues - see Fred's City
+- Fluctuating number of zones - see Fred's City
 
 ## Audit Code
 - Zone demand

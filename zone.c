@@ -4,6 +4,7 @@
 
 #include "sim.h"
 #include "tiles.h"
+#include "sprite.h"
 #include <stdlib.h>
 #include <string.h>
 #include <windows.h>
@@ -321,6 +322,16 @@ static void MakeHosp(void) {
     }
 }
 
+static void DrawStadium(int cx, int cy, int base) {
+    int ix, iy;
+    int z;
+    z = base - 5;
+    for (iy = cy - 1; iy < cy + 3; iy++)
+        for (ix = cx - 1; ix < cx + 3; ix++)
+            Map[iy][ix] = (z++) | BURNBIT | CONDBIT;
+    Map[cy][cx] |= ZONEBIT | POWERBIT;
+}
+
 static void DoSPZ(int x, int y) {
     short z;
 
@@ -384,18 +395,45 @@ static void DoSPZ(int x, int y) {
         StadiumPop++;
         if (!(CityTime & 15))
             RepairZone(x, y, STADIUM, 4);
+        if (Map[y][x] & POWERBIT) {
+            if (!((CityTime + x + y) & 31)) {
+                DrawStadium(x, y, FULLSTADIUM);
+                Map[y][x + 1] = FOOTBALLGAME1 + ANIMBIT;
+                Map[y + 1][x + 1] = FOOTBALLGAME2 + ANIMBIT;
+            }
+        }
+        return;
+
+    case FULLSTADIUM:
+        StadiumPop++;
+        if (!((CityTime + x + y) & 7))
+            DrawStadium(x, y, STADIUM);
         return;
 
     case AIRPORT:
         APortPop++;
         if (!(CityTime & 7))
             RepairZone(x, y, AIRPORT, 6);
+        if (Map[y][x] & POWERBIT) {
+            if ((Map[y - 1][x + 1] & LOMASK) == RADAR)
+                Map[y - 1][x + 1] = RADAR + ANIMBIT + CONDBIT + BURNBIT;
+        } else {
+            Map[y - 1][x + 1] = RADAR + CONDBIT + BURNBIT;
+        }
+        if (Map[y][x] & POWERBIT) {
+            if (!SimRandom(5)) {
+                GenerateAircraft();
+            }
+        }
         return;
 
     case PORT:
         PortPop++;
         if (!(CityTime & 15))
             RepairZone(x, y, PORT, 4);
+        if ((Map[y][x] & POWERBIT) && GetSpriteByType(SPRITE_SHIP) == NULL) {
+            GenerateShips();
+        }
         return;
     }
 }

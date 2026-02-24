@@ -40,9 +40,8 @@ void doEarthquake(void) {
     short tile, tileValue;
     int epicenterX, epicenterY;
 
-    /* Set epicenter to center of the map */
-    epicenterX = WORLD_X / 2;
-    epicenterY = WORLD_Y / 2;
+    epicenterX = CCx;
+    epicenterY = CCy;
 
     /* Random earthquake damage - with reasonable limits */
     time = SimRandom(700) + 300;
@@ -142,57 +141,6 @@ void makeFire(int x, int y) {
                 Map[y][x] = FIRE + ANIMBIT + (rand() & 7);
                 ShowNotificationAt(NOTIF_FIRE_REPORTED, x, y);
                 return;
-            }
-        }
-    }
-}
-
-/* Check for and spread fires - called from simulation loop */
-void spreadFire(void) {
-    int x, y, dir, tx, ty;
-    int i;
-    short tileValue;
-
-    /* Process a limited number of random locations */
-    for (i = 0; i < 20; i++) {
-        /* Pick a random position */
-        x = SimRandom(WORLD_X);
-        y = SimRandom(WORLD_Y);
-
-        /* Skip if out of bounds */
-        if (x < 0 || x >= WORLD_X || y < 0 || y >= WORLD_Y) {
-            continue;
-        }
-
-        tileValue = Map[y][x] & LOMASK;
-
-        /* Check if it's a fire tile */
-        if (tileValue >= FIRE && tileValue < (FIRE + 8)) {
-            /* It's a fire! Chance to spread to adjacent tiles */
-            if (SimRandom(10) < 3) { /* 30% chance to spread */
-                /* Log fire spreading only occasionally to avoid spam */
-                if (SimRandom(20) == 0) {
-                    addDebugLog("Fire spreading at %d,%d", x, y);
-                }
-                /* Pick a random direction */
-                dir = SimRandom(4);
-                tx = x + xDelta[dir];
-                ty = y + yDelta[dir];
-
-                /* Check if the target tile is in bounds */
-                if (BOUNDS_CHECK(tx, ty)) {
-                    /* Only spread to burnable tiles */
-                    if (Map[ty][tx] & BURNBIT) {
-                        /* Create a fire with animation */
-                        setMapTile(tx, ty, FIRE + SimRandom(8), ANIMBIT, TILE_SET_REPLACE, "spreadFire-spread");
-                    }
-                }
-            }
-
-            /* Small chance for fire to burn out */
-            if (SimRandom(10) == 0) { /* 10% chance to burn out */
-                /* Convert to rubble */
-                setMapTile(x, y, RUBBLE + SimRandom(4), BULLBIT, TILE_SET_REPLACE, "spreadFire-burnout");
             }
         }
     }

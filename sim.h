@@ -516,7 +516,8 @@ void CalcTrafficAverage(void);
 void RandomlySeedRand(void); /* Initialize random number generator */
 int SimRandom(int range);  /* Random number function used by traffic system */
 
-/* Scanner-related functions - scanner.c */
+/* Scanner-related variables and functions - scanner.c */
+extern short CCx, CCy;
 void FireAnalysis(void);    /* Fire station effect analysis */
 void PopDenScan(void);      /* Population density scan */
 void PTLScan(void);         /* Pollution/terrain/land value scan */
@@ -572,7 +573,6 @@ DoScenarioScore(int scoreType);          /* Evaluate scenario victory conditions
 void doEarthquake(void);                 /* Create an earthquake */
 void makeFlood(void);                    /* Create a flood */
 void makeFire(int x, int y);             /* Start a fire */
-void spreadFire(void);                   /* Check for and spread fires */
 void makeMonster(void);                  /* Create a monster */
 void makeTornado(void);                  /* Create a tornado */
 void makeExplosion(int x, int y);        /* Create an explosion */

@@ -10,7 +10,7 @@
 #include <windows.h>
 
 /* Power stack size for power distribution algorithm */
-#define PWRSTKSIZE 1000
+#define PWRSTKSIZE 3000
 
 /* Power stack for distribution algorithm */
 static int PowerStackNum = 0;
@@ -262,8 +262,7 @@ void DoPowerScan(void) {
         do {
             /* Increment the power counter - if over capacity, stop */
             if (++NumPower > MaxPower) {
-                /* We've reached the power capacity limit */
-                /* Count power zones using unified system */
+                SendMes(40);
                 CountPowerZones();
                 return;
             }

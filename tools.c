@@ -712,24 +712,17 @@ int LayDoze(int x, int y, short *tilePtr) {
         return 0;
     }
 
-    tile = *tilePtr & LOMASK;
-
-    /* Empty land - nothing to bulldoze, return success */
-    if (tile == DIRT) {
-        return 1;
-    }
-
-    /* If funds are too low (we need at least $1) */
-    if (TotalFunds < 1) {
+    if (!TotalFunds) {
         return 0;
     }
 
-    /* Special case for water-related structures which cost more */
-    if ((tile == HANDBALL || tile == LHBALL || tile == HBRIDGE || tile == VBRIDGE || tile == BRWH ||
-         tile == BRWV) &&
-        TotalFunds < 5) {
+    tile = *tilePtr;
+
+    if (!(tile & BULLBIT)) {
         return 0;
     }
+
+    tile &= LOMASK;
 
     /* If this is a zone center, handle it specially */
     if (*tilePtr & ZONEBIT) {
@@ -793,22 +786,22 @@ int LayDoze(int x, int y, short *tilePtr) {
         }
     }
 
-    /* Can't bulldoze lakes, rivers, radiated tiles */
-    if ((tile == RIVER) || (tile == REDGE) || (tile == CHANNEL) || (tile == RADTILE)) {
-        return 0;
-    }
-
-    /* Bulldoze water-related structures back to water */
-    if (tile == HANDBALL || tile == LHBALL || tile == HBRIDGE || tile == VBRIDGE || tile == BRWH ||
-        tile == BRWV) {
-        Spend(5);
+    switch (tile) {
+    case HBRIDGE:
+    case VBRIDGE:
+    case BRWV:
+    case BRWH:
+    case HPOWER:
+    case VPOWER:
+    case HRAIL:
+    case VRAIL:
         *tilePtr = RIVER;
-        return 1;
+        break;
+    default:
+        *tilePtr = DIRT;
+        break;
     }
-
-    /* General bulldozing of other tiles */
     Spend(1);
-    *tilePtr = DIRT;
     return 1;
 }
 
@@ -2378,13 +2371,14 @@ int DoPark(int mapX, int mapY) {
         return TOOLRESULT_NO_MONEY;
     }
 
-    Spend(TOOL_PARK_COST); /* Deduct cost */
+    Spend(TOOL_PARK_COST);
 
-    /* Random park type */
-    randval = SimRandom(4);
-
-    /* Set the tile to a random park tile */
-    setMapTile(mapX, mapY, randval + TILE_WOODS, BURNBIT | BULLBIT, TILE_SET_REPLACE, "DoPark-forest");
+    randval = SimRandom(5);
+    if (randval == 4) {
+        setMapTile(mapX, mapY, FOUNTAIN, BURNBIT | BULLBIT | ANIMBIT, TILE_SET_REPLACE, "DoPark-fountain");
+    } else {
+        setMapTile(mapX, mapY, randval + WOODS2, BURNBIT | BULLBIT, TILE_SET_REPLACE, "DoPark-forest");
+    }
 
     return TOOLRESULT_OK;
 }
