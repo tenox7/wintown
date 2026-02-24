@@ -719,9 +719,9 @@ void SetValves(void) {
     int prevIdx;
 
     prevIdx = HISTLEN / 2 - 2;
-    hCom = (float)ComHis[prevIdx] / 64.0f;
-    hInd = (float)IndHis[prevIdx] / 64.0f;
-    hRes = (float)ResHis[prevIdx] / 64.0f;
+    hCom = (float)ComHis[prevIdx];
+    hInd = (float)IndHis[prevIdx];
+    hRes = (float)ResHis[prevIdx];
 
     NormResPop = (float)(ResPop / 8);
 
@@ -984,11 +984,11 @@ void TakeCensus(void) {
     }
 
     /* Record current values in history */
-    ResHis[HISTLEN / 2 - 1] = ResPop * 8;
-    ComHis[HISTLEN / 2 - 1] = ComPop * 8;
-    IndHis[HISTLEN / 2 - 1] = IndPop * 8;
-    CrimeHis[HISTLEN / 2 - 1] = CrimeAverage * 8;
-    PollutionHis[HISTLEN / 2 - 1] = PollutionAverage * 8;
+    ResHis[HISTLEN / 2 - 1] = ResPop / 8;
+    ComHis[HISTLEN / 2 - 1] = ComPop;
+    IndHis[HISTLEN / 2 - 1] = IndPop;
+    CrimeHis[HISTLEN / 2 - 1] = CrimeAverage;
+    PollutionHis[HISTLEN / 2 - 1] = PollutionAverage;
     MoneyHis[HISTLEN / 2 - 1] = (short)(TotalFunds / 100);
 
     /* Note: MiscHis will be updated in the specific subsystem implementations */
@@ -1208,8 +1208,7 @@ QUAD CalculateCityPopulation(int resPop, int comPop, int indPop) {
     if (comPop < 0) comPop = 0;
     if (indPop < 0) indPop = 0;
     
-    /* Use standard WiNTown formula: CityPop = (Res + Com*8 + Ind*8) * 20 */
-    result = ((QUAD)resPop + ((QUAD)comPop * 8L) + ((QUAD)indPop * 8L)) * 20L;
+    result = (QUAD)resPop + ((QUAD)(comPop + indPop) * 8L);
     
     /* Ensure non-negative result */
     if (result < 0) {

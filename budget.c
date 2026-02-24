@@ -67,8 +67,9 @@ void CollectTax(void) {
 
     /* Only process budget if there are people to tax */
     if (TotalPop > 0) {
-        /* Calculate tax income using original formula with difficulty multiplier */
-        TaxFund = (QUAD)(((TotalPop * LVAverage) / 120) * TaxRate * DifficultyTaxEfficiency[GameLevel]);
+        float taxPop;
+        taxPop = ((float)ResPop + (float)ComPop + (float)IndPop) / 3.0f;
+        TaxFund = (QUAD)((taxPop * LVAverage / 120) * TaxRate * DifficultyTaxEfficiency[GameLevel]);
 
         /* Log tax collection */
         addGameLog("Annual tax collection: $%d", (int)TaxFund);
