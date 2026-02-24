@@ -414,6 +414,12 @@ extern short CValve;     /* Commercial development rate */
 extern short IValve;     /* Industrial development rate */
 extern int ValveFlag;    /* Set to 1 when valves change */
 
+/* Economic model (from original Micropolis) */
+extern float EMarket;
+extern short CrimeRamp;
+extern short PolluteRamp;
+extern short CashFlow;
+
 /* Disasters */
 extern short DisasterEvent; /* Current disaster type (0=none) - defined in scenarios.c */
 extern short DisasterWait;  /* Countdown to next disaster - defined in scenarios.c */
@@ -432,7 +438,7 @@ void DoSimInit(void);
 void SimFrame(void);
 void Simulate(int mod16);
 void DoTimeStuff(void);
-void SetValves(int res, int com, int ind);
+void SetValves(void);
 void ClearCensus(void);
 void TakeCensus(void);
 void MapScan(int x1, int x2, int y1, int y2);

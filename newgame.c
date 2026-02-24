@@ -22,7 +22,7 @@ extern int loadScenario(int scenarioId);
 
 /* External simulation functions */
 extern void DoSimInit(void);
-extern void SetValves(int res, int com, int ind);
+extern void SetValves(void);
 
 /* External variables */
 extern long TotalFunds;
@@ -769,8 +769,10 @@ int generateNewCity(char *cityName, int difficulty) {
         break;
     }
     
-    /* Set demand valves to initial values */
-    SetValves(500, 300, 100);
+    RValve = 0;
+    CValve = 0;
+    IValve = 0;
+    ValveFlag = 1;
     
     addGameLog("New city '%s' generated successfully. Difficulty: %s, Funds: $%ld", 
               cityName, 
@@ -842,8 +844,10 @@ int generateNewCityWithTerrain(char *cityName, int difficulty, int mapType, int 
         break;
     }
     
-    /* Set demand valves to initial values */
-    SetValves(500, 300, 100);
+    RValve = 0;
+    CValve = 0;
+    IValve = 0;
+    ValveFlag = 1;
     
     addGameLog("New city '%s' with terrain generated successfully. Difficulty: %s, Funds: $%ld", 
               cityName, 

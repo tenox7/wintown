@@ -461,7 +461,7 @@ void createNewMap(HWND hwnd);
 
 /* External functions - defined in simulation.c */
 extern int SimRandom(int range);
-extern void SetValves(int r, int c, int i);
+extern void SetValves(void);
 extern const char *GetCityClassName(void);
 extern void RandomlySeedRand(void);
 
@@ -5594,8 +5594,10 @@ void createNewMap(HWND hwnd) {
     /* Start with medium speed */
     SetSimulationSpeed(hwnd, SPEED_MEDIUM);
     
-    /* Set demand valves to initial values */
-    SetValves(500, 300, 100);
+    RValve = 0;
+    CValve = 0;
+    IValve = 0;
+    ValveFlag = 1;
     
     /* Add logging */
     addGameLog("Created new empty city");

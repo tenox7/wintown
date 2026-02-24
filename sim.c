@@ -131,6 +131,12 @@ short CValve = 0;
 short IValve = 0;
 int ValveFlag = 0;
 
+/* Economic model variables (from original Micropolis) */
+float EMarket = 4.0f;
+short CrimeRamp = 0;
+short PolluteRamp = 0;
+short CashFlow = 0;
+
 /* Disasters */
 extern short DisasterEvent; /* Defined in scenarios.c */
 extern short DisasterWait;  /* Defined in scenarios.c */
@@ -251,8 +257,15 @@ void DoSimInit(void) {
     CityClass = oldCityClass;
     LastTotalPop = oldTotalPop;
 
-    /* Set initial growth demand */
-    SetValves(500, 300, 100);
+    RValve = 0;
+    CValve = 0;
+    IValve = 0;
+    EMarket = 6.0f;
+    CrimeRamp = 0;
+    PolluteRamp = 0;
+    ResCap = 0;
+    ComCap = 0;
+    IndCap = 0;
     ValveFlag = 1;
 
     /* Set initial funds and tax rate */
@@ -343,15 +356,12 @@ void Simulate(int mod16) {
         /* Increment time, check for disasters, process valve changes */
         DoTimeStuff();
 
-        /* Adjust valves when needed */
-        if (ValveFlag) {
-            SetValves(RValve, CValve, IValve);
-            ValveFlag = 0;
+        if (!(Scycle & 1))
+            SetValves();
 
-#ifdef DEBUG
-            /* Log valves change */
-            addDebugLog("Demand adjusted: R=%d C=%d I=%d", RValve, CValve, IValve);
-#endif
+        if (ValveFlag) {
+            ValveFlag = 0;
+            UpdateToolbar();
         }
 
         /* Power scan moved to case 11 to avoid duplicate calls */
@@ -604,11 +614,9 @@ void Simulate(int mod16) {
 }
 
 void DoTimeStuff(void) {
-    /* For milestone tracking */
     static int lastMilestone = 0;
     static int lastCityClass = 0;
     int currentMilestone;
-    char debugMsg[256];
 
     /* Process time advancement */
     CityTime++;
@@ -654,81 +662,6 @@ void DoTimeStuff(void) {
         if (CityClass > lastCityClass) {
             addGameLog("City upgraded to %s!", GetCityClassName());
             lastCityClass = CityClass;
-        }
-
-        /* Make the simulation more dynamic - adjust valves more frequently */
-        /* Increased from every 2 years to every year */
-        {
-            int rDelta, cDelta, iDelta;
-            int taxPenalty;
-
-            /* Much stronger bias toward positive growth */
-            rDelta = SimRandom(600) - 100; /* Bias toward positive values */
-            cDelta = SimRandom(600) - 100;
-            iDelta = SimRandom(600) - 100;
-            
-            /* Apply difficulty multipliers to growth rates */
-            rDelta = (int)(rDelta * 1.0f);  /* Residential growth not affected by difficulty */
-            cDelta = (int)(cDelta * 1.0f);  /* Commercial growth not affected by difficulty */
-            iDelta = (int)(iDelta * DifficultyIndustrialGrowth[GameLevel]);  /* Industrial growth affected by difficulty */
-            
-            /* Apply tax burden effects - higher difficulty makes tax increases more punishing */
-            if (TaxRate > 7) {  /* Default tax rate is 7% */
-                taxPenalty = (TaxRate - 7) * 10 * (GameLevel + 1);  /* More penalty on higher difficulty */
-                rDelta -= taxPenalty;
-                cDelta -= taxPenalty;
-                iDelta -= taxPenalty;
-#ifdef DEBUG
-                addDebugLog("Tax burden penalty applied: -%d per valve (Rate: %d%%, Difficulty: %d)", 
-                           taxPenalty, TaxRate, GameLevel);
-#endif
-            }
-
-            RValve += rDelta;
-            CValve += cDelta;
-            IValve += iDelta;
-
-            /* Force valves to stay positive most of the time */
-            if (RValve < 0 && SimRandom(4) < 3) {
-                RValve = 200 + SimRandom(300);
-            }
-            if (CValve < 0 && SimRandom(4) < 3) {
-                CValve = 200 + SimRandom(300);
-            }
-            if (IValve < 0 && SimRandom(4) < 3) {
-                IValve = 200 + SimRandom(300);
-            }
-
-            /* Ensure valves stay in reasonable ranges */
-            if (RValve < -1000) {
-                RValve = -1000;
-            }
-            if (RValve > 2000) {
-                RValve = 2000;
-            }
-            if (CValve < -1000) {
-                CValve = -1000;
-            }
-            if (CValve > 2000) {
-                CValve = 2000;
-            }
-            if (IValve < -1000) {
-                IValve = -1000;
-            }
-            if (IValve > 2000) {
-                IValve = 2000;
-            }
-
-            /* Debug valve changes */
-            {
-                        wsprintf(debugMsg, "VALVES: R=%d C=%d I=%d (Year %d)\n", RValve, CValve, IValve,
-                         CityYear);
-                OutputDebugString(debugMsg);
-
-                /* Add to log window */
-                addDebugLog("Growth rates: Residential=%d Commercial=%d Industrial=%d", RValve,
-                            CValve, IValve);
-            }
         }
 
         /* Removed: artificial fund injection not in original game */
@@ -780,35 +713,91 @@ void DoTimeStuff(void) {
     }
 }
 
-void SetValves(int res, int com, int ind) {
-    /* Set the development rate valves */
+void SetValves(void) {
+    static short TaxTable[21] = {
+        200, 150, 120, 100, 80, 50, 30, 0, -10, -40, -100,
+        -150, -200, -250, -300, -350, -400, -450, -500, -550, -600
+    };
+    float Employment, Migration, Births, LaborBase, IntMarket;
+    float Rratio, Cratio, Iratio, temp;
+    float NormResPop, PjResPop, PjComPop, PjIndPop;
+    float hCom, hInd, hRes;
+    short z;
+    int prevIdx;
 
-    if (res < -2000) {
-        res = -2000;
-    }
-    if (com < -2000) {
-        com = -2000;
-    }
-    if (ind < -2000) {
-        ind = -2000;
+    prevIdx = HISTLEN / 2 - 2;
+    hCom = (float)ComHis[prevIdx] / 64.0f;
+    hInd = (float)IndHis[prevIdx] / 64.0f;
+    hRes = (float)ResHis[prevIdx] / 64.0f;
+
+    NormResPop = (float)(ResPop / 8);
+
+    if (NormResPop != 0)
+        Employment = (hCom + hInd) / NormResPop;
+    else
+        Employment = 1.0f;
+
+    Migration = NormResPop * (Employment - 1.0f);
+    Births = NormResPop * 0.02f;
+    PjResPop = NormResPop + Migration + Births;
+
+    temp = hCom + hInd;
+    if (temp != 0)
+        LaborBase = hRes / temp;
+    else
+        LaborBase = 1.0f;
+    if (LaborBase > 1.3f) LaborBase = 1.3f;
+    if (LaborBase < 0) LaborBase = 0.0f;
+
+    IntMarket = (NormResPop + (float)ComPop + (float)IndPop) / 3.7f;
+    PjComPop = IntMarket * LaborBase;
+
+    temp = 1.0f;
+    switch (GameLevel) {
+    case 0: temp = 1.2f; break;
+    case 1: temp = 1.1f; break;
+    case 2: temp = 0.98f; break;
     }
 
-    if (res > 2000) {
-        res = 2000;
-    }
-    if (com > 2000) {
-        com = 2000;
-    }
-    if (ind > 2000) {
-        ind = 2000;
-    }
+    PjIndPop = (float)IndPop * LaborBase * temp;
+    if (PjIndPop < 5.0f) PjIndPop = 5.0f;
 
-    RValve = res;
-    CValve = com;
-    IValve = ind;
+    if (NormResPop != 0) Rratio = PjResPop / NormResPop;
+    else Rratio = 1.3f;
+    if (ComPop != 0) Cratio = PjComPop / (float)ComPop;
+    else Cratio = PjComPop;
+    if (IndPop != 0) Iratio = PjIndPop / (float)IndPop;
+    else Iratio = PjIndPop;
 
-    /* Update the toolbar to reflect the new RCI values */
-    UpdateToolbar();
+    if (Rratio > 2.0f) Rratio = 2.0f;
+    if (Cratio > 2.0f) Cratio = 2.0f;
+    if (Iratio > 2.0f) Iratio = 2.0f;
+
+    z = (short)TaxRate + (short)GameLevel;
+    if (z > 20) z = 20;
+    Rratio = ((Rratio - 1) * 600) + TaxTable[z];
+    Cratio = ((Cratio - 1) * 600) + TaxTable[z];
+    Iratio = ((Iratio - 1) * 600) + TaxTable[z];
+
+    if (Rratio > 0 && RValve < 2000) RValve += (short)Rratio;
+    if (Rratio < 0 && RValve > -2000) RValve += (short)Rratio;
+    if (Cratio > 0 && CValve < 1500) CValve += (short)Cratio;
+    if (Cratio < 0 && CValve > -1500) CValve += (short)Cratio;
+    if (Iratio > 0 && IValve < 1500) IValve += (short)Iratio;
+    if (Iratio < 0 && IValve > -1500) IValve += (short)Iratio;
+
+    if (RValve > 2000) RValve = 2000;
+    if (RValve < -2000) RValve = -2000;
+    if (CValve > 1500) CValve = 1500;
+    if (CValve < -1500) CValve = -1500;
+    if (IValve > 1500) IValve = 1500;
+    if (IValve < -1500) IValve = -1500;
+
+    if (ResCap && RValve > 0) RValve = 0;
+    if (ComCap && CValve > 0) CValve = 0;
+    if (IndCap && IValve > 0) IValve = 0;
+
+    ValveFlag = 1;
 }
 
 void ClearCensus(void) {
