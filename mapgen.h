@@ -19,6 +19,7 @@ typedef struct {
 /* Function prototypes */
 int generateTerrainMap(MapGenParams *params);
 int generateMapPreview(MapGenParams *params, HBITMAP *previewBitmap, int width, int height);
+int renderMapPreview(HBITMAP *previewBitmap, int width, int height);
 void initMapGenParams(MapGenParams *params);
 
 #endif /* MAPGEN_H */

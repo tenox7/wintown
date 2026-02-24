@@ -52,6 +52,59 @@ static NewGameConfig *currentConfig = NULL;
 static HBITMAP currentPreviewBitmap = NULL;
 static int currentListMode = NEWGAME_SCENARIO; /* Track what's in the listbox */
 
+/* Load selected scenario/city map and render it into the preview control */
+static void updateSelectionPreview(HWND hwnd) {
+    static int scenarioResIds[8] = {
+        IDR_SCENARIO_DULLSVILLE,
+        IDR_SCENARIO_SANFRANCISCO,
+        IDR_SCENARIO_HAMBURG,
+        IDR_SCENARIO_BERN,
+        IDR_SCENARIO_TOKYO,
+        IDR_SCENARIO_DETROIT,
+        IDR_SCENARIO_BOSTON,
+        IDR_SCENARIO_RIO
+    };
+    HWND listBox, previewCtrl;
+    RECT previewRect;
+    int previewWidth, previewHeight;
+    int sel, resId;
+    GameAssetInfo *cityInfo;
+
+    listBox = GetDlgItem(hwnd, IDC_SCENARIO_LIST);
+    sel = (int)SendMessage(listBox, LB_GETCURSEL, 0, 0);
+    if (sel == LB_ERR) return;
+
+    previewCtrl = GetDlgItem(hwnd, IDC_MAP_PREVIEW);
+    GetClientRect(previewCtrl, &previewRect);
+    previewWidth = previewRect.right - previewRect.left;
+    previewHeight = previewRect.bottom - previewRect.top;
+
+    if (currentListMode == NEWGAME_SCENARIO) {
+        if (sel < 0 || sel >= scenarioCount) return;
+        resId = scenarioResIds[sel];
+        loadScenarioFromResource(resId, scenarios[sel].name);
+    } else if (currentListMode == NEWGAME_LOAD_CITY_BUILTIN) {
+        if (sel < 0 || sel >= getCityCount()) return;
+        cityInfo = getCityInfo(sel);
+        if (!cityInfo) return;
+        loadCityFromResource(cityInfo->resourceId, cityInfo->description);
+    } else {
+        return;
+    }
+
+    SetGameSpeed(SPEED_PAUSED);
+
+    if (currentPreviewBitmap) {
+        DeleteObject(currentPreviewBitmap);
+        currentPreviewBitmap = NULL;
+    }
+
+    if (renderMapPreview(&currentPreviewBitmap, previewWidth, previewHeight)) {
+        SendMessage(previewCtrl, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)currentPreviewBitmap);
+        addGameLog("Selection preview rendered (%dx%d)", previewWidth, previewHeight);
+    }
+}
+
 /* Helper function to generate preview map */
 static void generateDefaultPreview(HWND hwnd) {
     MapGenParams params;
@@ -266,9 +319,13 @@ BOOL CALLBACK newGameDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
                 }
                 if (SendMessage(listBox, LB_GETCOUNT, 0, 0) > 0) {
                     SendMessage(listBox, LB_SETCURSEL, 0, 0);
-                    SetDlgItemText(hwnd, IDC_SCENARIO_DESC, "Select a builtin city to load.");
+                    cityInfo = getCityInfo(0);
+                    if (cityInfo) {
+                        SetDlgItemText(hwnd, IDC_SCENARIO_DESC, cityInfo->description);
+                    }
                 }
                 currentListMode = NEWGAME_LOAD_CITY_BUILTIN;
+                updateSelectionPreview(hwnd);
                 
                 if (currentConfig) {
                     currentConfig->gameType = NEWGAME_LOAD_CITY_BUILTIN;
@@ -321,7 +378,8 @@ BOOL CALLBACK newGameDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
                 SendMessage(listBox, LB_SETCURSEL, 0, 0);
                 SetDlgItemText(hwnd, IDC_SCENARIO_DESC, scenarios[0].description);
                 currentListMode = NEWGAME_SCENARIO;
-                
+                updateSelectionPreview(hwnd);
+
                 if (currentConfig) {
                     currentConfig->gameType = NEWGAME_SCENARIO;
                 }
@@ -399,22 +457,17 @@ BOOL CALLBACK newGameDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
                 
                 if (currentListMode == NEWGAME_SCENARIO) {
                     if (sel != LB_ERR && sel >= 0 && sel < scenarioCount) {
-                        addGameLog("New game dialog: Selected scenario %d (%s): %s", 
-                                  sel, scenarios[sel].name, scenarios[sel].description);
                         SetDlgItemText(hwnd, IDC_SCENARIO_DESC, scenarios[sel].description);
-                    } else {
-                        addGameLog("DEBUG: Invalid scenario selection - sel=%d, scenarioCount=%d", sel, scenarioCount);
+                        updateSelectionPreview(hwnd);
                     }
                 } else if (currentListMode == NEWGAME_LOAD_CITY_BUILTIN) {
                     int cityCount = getCityCount();
                     if (sel != LB_ERR && sel >= 0 && sel < cityCount) {
                         GameAssetInfo* cityInfo = getCityInfo(sel);
                         if (cityInfo) {
-                            addGameLog("New game dialog: Selected builtin city %d (%s)", sel, cityInfo->description);
                             SetDlgItemText(hwnd, IDC_SCENARIO_DESC, cityInfo->description);
+                            updateSelectionPreview(hwnd);
                         }
-                    } else {
-                        addGameLog("DEBUG: Invalid city selection - sel=%d, cityCount=%d", sel, cityCount);
                     }
                 }
             }

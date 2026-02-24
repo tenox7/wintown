@@ -305,7 +305,7 @@ static void generateForests(int forestPercent) {
             if (x >= 0 && x < WORLD_X && y >= 0 && y < WORLD_Y) {
                 int existing = getMapTile(x, y);
                 if (existing == DIRT_TILE) {
-                    setMapTile(x, y, WOODS_TILE, 0, TILE_SET_REPLACE, "generateForests");
+                    Map[y][x] = WOODS_TILE | BULLBIT | BURNBIT;
                 }
             }
         }
@@ -391,8 +391,8 @@ static void smoothForestEdges(void) {
     
     for (x = 0; x < WORLD_X; x++) {
         for (y = 0; y < WORLD_Y; y++) {
-            tile = getMapTile(x, y);
-            
+            tile = Map[y][x] & LOMASK;
+
             if (tile >= TREEBASE && tile <= WOODS_TILE) {
                 bitIndex = 0;
 
@@ -402,21 +402,21 @@ static void smoothForestEdges(void) {
                     ny = y + dy[z];
 
                     if (nx >= 0 && nx < WORLD_X && ny >= 0 && ny < WORLD_Y) {
-                        neighborTile = getMapTile(nx, ny);
+                        neighborTile = Map[ny][nx] & LOMASK;
                         if (neighborTile >= TREEBASE && neighborTile <= WOODS_TILE) {
                             bitIndex++;
                         }
                     }
                 }
-                
+
                 temp = treeEdgeTable[bitIndex & 15];
-                if (temp != 0) {
-                    if (temp != 37) {
-                        if ((x + y) & 1) {
+                if (temp) {
+                    if (temp != WOODS_TILE)
+                        if ((x + y) & 1)
                             temp = temp - 8;
-                        }
-                    }
-                    setMapTile(x, y, temp, BULLBIT, TILE_SET_REPLACE, "smoothForestEdges");
+                    Map[y][x] = temp | BULLBIT | BURNBIT;
+                } else {
+                    Map[y][x] = temp;
                 }
             }
         }
@@ -578,6 +578,82 @@ int generateMapPreview(MapGenParams *params, HBITMAP *previewBitmap, int width, 
     ReleaseDC(NULL, hdc);
     
     addGameLog("Map preview generated successfully");
+    return 1;
+}
+
+/* Render current map state to preview bitmap (without generating new terrain) */
+int renderMapPreview(HBITMAP *previewBitmap, int width, int height) {
+    HDC hdc, memDC;
+    HBITMAP oldBitmap;
+    int x, y, mapX, mapY, tile;
+    int actualWidth, actualHeight, offsetX, offsetY;
+    float aspectRatio, widthRatio, heightRatio;
+    COLORREF tileColor;
+    HBRUSH bgBrush;
+
+    if (!previewBitmap) return 0;
+
+    aspectRatio = (float)WORLD_X / (float)WORLD_Y;
+    widthRatio = (float)width / aspectRatio;
+    heightRatio = (float)height * aspectRatio;
+
+    if (widthRatio <= height) {
+        actualWidth = width;
+        actualHeight = (int)widthRatio;
+    } else {
+        actualWidth = (int)heightRatio;
+        actualHeight = height;
+    }
+
+    hdc = GetDC(NULL);
+    memDC = CreateCompatibleDC(hdc);
+    *previewBitmap = CreateCompatibleBitmap(hdc, width, height);
+    oldBitmap = SelectObject(memDC, *previewBitmap);
+
+    bgBrush = CreateSolidBrush(RGB(192, 192, 192));
+    SelectObject(memDC, bgBrush);
+    PatBlt(memDC, 0, 0, width, height, PATCOPY);
+    DeleteObject(bgBrush);
+
+    offsetX = (width - actualWidth) / 2;
+    offsetY = (height - actualHeight) / 2;
+
+    for (y = 0; y < actualHeight; y++) {
+        for (x = 0; x < actualWidth; x++) {
+            mapX = (x * WORLD_X) / actualWidth;
+            mapY = (y * WORLD_Y) / actualHeight;
+            tile = getMapTile(mapX, mapY) & LOMASK;
+
+            if (tile == 0) {
+                tileColor = RGB(139, 69, 19);   /* dirt - brown */
+            } else if (tile <= 20) {
+                tileColor = RGB(0, 0, 200);     /* water - blue */
+            } else if (tile <= 43) {
+                tileColor = RGB(0, 100, 0);     /* trees - dark green */
+            } else if (tile <= 63) {
+                tileColor = RGB(255, 100, 0);   /* fire - orange */
+            } else if (tile <= 207) {
+                tileColor = RGB(160, 160, 160); /* road/bridge - gray */
+            } else if (tile <= 239) {
+                tileColor = RGB(200, 180, 0);   /* power/rail - yellow */
+            } else if (tile <= 422) {
+                tileColor = RGB(100, 200, 100); /* residential - green */
+            } else if (tile <= 611) {
+                tileColor = RGB(100, 150, 255); /* commercial - blue */
+            } else if (tile <= 843) {
+                tileColor = RGB(200, 180, 100); /* industrial/large - tan */
+            } else {
+                tileColor = RGB(128, 128, 128); /* other - gray */
+            }
+
+            SetPixel(memDC, x + offsetX, y + offsetY, tileColor);
+        }
+    }
+
+    SelectObject(memDC, oldBitmap);
+    DeleteDC(memDC);
+    ReleaseDC(NULL, hdc);
+
     return 1;
 }
 
