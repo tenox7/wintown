@@ -2435,14 +2435,12 @@ int Place4x4Building(int mapX, int mapY, int baseValue, int centerTile, int tota
     for (dy = -1; dy <= 2; dy++) {
         for (dx = -1; dx <= 2; dx++) {
             if (dx == 0 && dy == 0) {
-                /* Center tile gets ZONEBIT */
-                setMapTile(mapX, mapY, centerTile, ZONEBIT | BULLBIT, TILE_SET_REPLACE, "PlaceBuilding-center");
+                setMapTile(mapX, mapY, centerTile, ZONEBIT | BULLBIT | CONDBIT, TILE_SET_REPLACE, "PlaceBuilding-center");
             } else {
-                /* Skip the center index (5) */
                 if (index == 5) {
                     index++;
                 }
-                setMapTile(mapX + dx, mapY + dy, baseValue + index, BULLBIT, TILE_SET_REPLACE, "PlaceBuilding-tile");
+                setMapTile(mapX + dx, mapY + dy, baseValue + index, BULLBIT | CONDBIT, TILE_SET_REPLACE, "PlaceBuilding-tile");
             }
             index++;
         }
@@ -2522,14 +2520,12 @@ int Place6x6Building(int mapX, int mapY, int baseValue, int centerTile, int tota
     for (dy = -2; dy <= 3; dy++) {
         for (dx = -2; dx <= 3; dx++) {
             if (dx == 0 && dy == 0) {
-                /* Center tile gets ZONEBIT */
-                setMapTile(mapX, mapY, centerTile, ZONEBIT | BULLBIT, TILE_SET_REPLACE, "PlaceBuilding-center");
+                setMapTile(mapX, mapY, centerTile, ZONEBIT | BULLBIT | CONDBIT, TILE_SET_REPLACE, "PlaceBuilding-center");
             } else {
-                /* Skip the center index (14) */
                 if (index == 14) {
                     index++;
                 }
-                setMapTile(mapX + dx, mapY + dy, baseValue + index, BULLBIT, TILE_SET_REPLACE, "PlaceBuilding-tile");
+                setMapTile(mapX + dx, mapY + dy, baseValue + index, BULLBIT | CONDBIT, TILE_SET_REPLACE, "PlaceBuilding-tile");
             }
             index++;
         }
