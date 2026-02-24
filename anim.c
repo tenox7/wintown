@@ -327,9 +327,8 @@ void UpdateNuclearPower(int x, int y) {
     if ((Map[y][x] & LOMASK) == NUCLEAR) {
         int xx, yy;
 
-        /* Set animation bits on the nuclear plant's core */
-        xx = x + 2;
-        yy = y - 1;
+        xx = x;
+        yy = y + 1;
 
         if (BOUNDS_CHECK(xx, yy)) {
             /* Set the nuclear swirl animation bit with appropriate flags */
