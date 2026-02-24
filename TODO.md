@@ -1,22 +1,18 @@
 # WiNTown TODO
 
+## Platform
+- Build for NT 3.1
+- Dynamic refresh rate based on clock speed
 
 ## Major Features Missing
-- Sound System
-- Evaluation window
-- Dynamic refresh rate based on clock speed
 - Auto Budget
 - Auto Bulldoze
 - Trains not working
-
+- Ships not working
 
 ## Bugs
 - Bridges, power over water
-- Power line issues
-- Power without wires (direct)
 - Minimap stats not working: fire, police
-- Sprites like airplane too slow also wrong direction
-- Some scenarios have negative money
 
 ## Audit Code
 - Zone demand
@@ -25,7 +21,6 @@
 
 
 ## Cosmetic
-- Helicopter / plane etc wrong colors / colormap, also slow, wrong direction
 - No power indicator not flashing
 - Some overlays are not working, like crime, fire etc
 - Power debug over tiles, roads and train tracks

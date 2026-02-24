@@ -45,6 +45,7 @@ static short BtClrTab[8] = {RIVER, CHANNEL, POWERBASE, POWERBASE+1, RAILBASE, RA
 
 /* Forward declarations */
 static int GetDirection(int orgX, int orgY, int desX, int desY);
+static int GetHeliDirection(int orgX, int orgY, int desX, int desY);
 static int TurnTo(int orgDir, int desDir);
 static short GetChar(int x, int y);
 static int CanDriveOn(int tileValue);
@@ -440,7 +441,7 @@ void DoAirplaneSprite(SimSprite *sprite) {
 
 /* Helicopter sprite behavior */
 void DoCopterSprite(SimSprite *sprite) {
-    int dx, dy, z, d;
+    int dx, dy, z;
 
     if (sprite->sound_count > 0) {
         sprite->sound_count--;
@@ -496,8 +497,12 @@ void DoCopterSprite(SimSprite *sprite) {
     }
 
     z = sprite->frame;
-    d = GetDirection(sprite->x, sprite->y, sprite->dest_x, sprite->dest_y);
-    z = TurnTo(z, d);
+    if (sprite->step > 0) sprite->step--;
+    if (z == sprite->new_dir && sprite->step <= 0) {
+        sprite->new_dir = GetHeliDirection(sprite->x, sprite->y, sprite->dest_x, sprite->dest_y);
+        sprite->step = 6;
+    }
+    z = TurnTo(z, sprite->new_dir);
     sprite->frame = z;
     sprite->dir = z;
 
@@ -689,6 +694,26 @@ static int GetDirection(int orgX, int orgY, int desX, int desY) {
     if (z < 0 || z > 12) z = 0;
 
     return Gdtab[z];
+}
+
+static int GetHeliDirection(int orgX, int orgY, int desX, int desY) {
+    int dispX, dispY, i;
+    long dot, bestDot;
+    int bestDir;
+
+    dispX = desX - orgX;
+    dispY = desY - orgY;
+    if (dispX == 0 && dispY == 0) return 0;
+
+    bestDir = 0;
+    bestDot = 0;
+    for (i = 1; i <= 8; i++) {
+        dot = (long)HDx[i] * dispX + (long)HDy[i] * dispY;
+        if (dot <= bestDot) continue;
+        bestDot = dot;
+        bestDir = i;
+    }
+    return bestDir;
 }
 
 /* Turn toward desired direction (1 step at a time, shortest path) */
