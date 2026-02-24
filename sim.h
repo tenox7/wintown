@@ -58,7 +58,7 @@ typedef long QUAD;
 #define ZONEBIT         0x0400  /* bit 10, tile is the center of a zone */
 #define POWERBIT        0x8000  /* bit 15, tile has power */
 #define MASKBITS        (~LOMASK)  /* Mask for just the bits */
-#define BNCNBIT         0x0400  /* Center bit */
+#define BNCNBIT         (BURNBIT+CONDBIT)  /* 0x6000 */
 #define ALLBITS         0xFFFF  /* All bits */
 
 /*

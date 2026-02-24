@@ -128,8 +128,7 @@ int calcComPop(int zone) {
         return 0;  /* Value too large for safe calculation */
     }
     
-    /* Note: zones range from COMBASE to COMBASE+many, not from CZB */
-    CzDen = (((zone - COMBASE) / 9) % 5) + 1;
+    CzDen = (((zone - CZB) / 9) % 5) + 1;
     result = CzDen;
     
     /* Ensure result is within reasonable bounds */
@@ -172,8 +171,7 @@ int calcIndPop(int zone) {
         return 0;  /* Value too large for safe calculation */
     }
     
-    /* Note: zones range from INDBASE to INDBASE+many, not from IZB */
-    CzDen = (((zone - INDBASE) / 9) % 4) + 1;
+    CzDen = (((zone - IZB) / 9) % 4) + 1;
     result = CzDen;
     
     /* Ensure result is within reasonable bounds */

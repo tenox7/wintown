@@ -237,26 +237,20 @@ void DoBudget(void) {
         RoadPercent = 1.0f;
     }
 
-    /* Calculate effective rates */
-    fireInt = FireFund > 0 ? FireSpend * 100 / FireFund : 100;
-    policeInt = PoliceFund > 0 ? PoliceSpend * 100 / PoliceFund : 100;
-    roadInt = RoadFund > 0 ? RoadSpend * 100 / RoadFund : 100;
+    if (RoadFund > 0)
+        RoadEffect = (int)(RoadSpend * 32 / RoadFund);
+    else
+        RoadEffect = 32;
 
-    /* Apply effect based on funding level */
-    if (FireEffect != (int)fireInt) {
-        FireEffect = (int)fireInt;
-        /* Effect on fire coverage */
-    }
+    if (PoliceFund > 0)
+        PoliceEffect = (int)(PoliceSpend * 1000 / PoliceFund);
+    else
+        PoliceEffect = 1000;
 
-    if (PoliceEffect != (int)policeInt) {
-        PoliceEffect = (int)policeInt;
-        /* Effect on police coverage */
-    }
-
-    if (RoadEffect != (int)roadInt) {
-        RoadEffect = (int)roadInt;
-        /* Effect on traffic and roads */
-    }
+    if (FireFund > 0)
+        FireEffect = (int)(FireSpend * 1000 / FireFund);
+    else
+        FireEffect = 1000;
 
     /* Spend budget money */
     total = FireSpend + PoliceSpend + RoadSpend;
@@ -264,20 +258,19 @@ void DoBudget(void) {
     /* Log actual spending */
     addGameLog("Annual budget: Income $%d, Expenses $%d", (int)TaxFund, (int)total);
     addDebugLog("Spending breakdown:");
-    addDebugLog("Roads: $%d (%d%% funded)", (int)RoadSpend, RoadEffect);
-    addDebugLog("Fire: $%d (%d%% funded)", (int)FireSpend, FireEffect);
-    addDebugLog("Police: $%d (%d%% funded)", (int)PoliceSpend, PoliceEffect);
+    addDebugLog("Roads: $%d (effect %d/32)", (int)RoadSpend, RoadEffect);
+    addDebugLog("Fire: $%d (effect %d/1000)", (int)FireSpend, FireEffect);
+    addDebugLog("Police: $%d (effect %d/1000)", (int)PoliceSpend, PoliceEffect);
     addDebugLog("Current funds: $%d", (int)TotalFunds);
 
-    /* If funding is low, give a warning */
-    if (RoadEffect < 70) {
-        addGameLog("WARNING: Road maintenance underfunded (%d%%)", RoadEffect);
+    if (RoadEffect < 24) {
+        addGameLog("WARNING: Road maintenance underfunded");
     }
-    if (FireEffect < 70) {
-        addGameLog("WARNING: Fire department underfunded (%d%%)", FireEffect);
+    if (FireEffect < 700) {
+        addGameLog("WARNING: Fire department underfunded");
     }
-    if (PoliceEffect < 70) {
-        addGameLog("WARNING: Police department underfunded (%d%%)", PoliceEffect);
+    if (PoliceEffect < 700) {
+        addGameLog("WARNING: Police department underfunded");
     }
 
     Spend(total);

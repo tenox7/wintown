@@ -684,26 +684,21 @@ void DoTimeStuff(void) {
                 switch (SimRandom(8)) {
                 case 0:
                 case 1:
-                    /* ToDo: MakeFlood(); */
-                    addGameLog("Flood disaster triggered!");
+                    makeFlood();
                     break;
                 case 2:
                 case 3:
-                    /* ToDo: MakeFire(); */
-                    addGameLog("Fire disaster triggered!");
+                    makeFire(SimRandom(WORLD_X), SimRandom(WORLD_Y));
                     break;
                 case 4:
                 case 5:
-                    /* ToDo: MakeAirCrash(); */
-                    addGameLog("Air crash disaster triggered!");
+                    makeFire(SimRandom(WORLD_X), SimRandom(WORLD_Y));
                     break;
                 case 6:
-                    /* ToDo: MakeTornado(); */
-                    addGameLog("Tornado disaster triggered!");
+                    makeTornado();
                     break;
                 case 7:
-                    /* ToDo: MakeEarthquake(); */
-                    addGameLog("Earthquake disaster triggered!");
+                    doEarthquake();
                     break;
                 }
             }
