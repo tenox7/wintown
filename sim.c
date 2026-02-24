@@ -582,11 +582,6 @@ void Simulate(int mod16) {
             FireAnalysis();
         DoDisasters();
 
-        if (ScenarioID > 0 && ScoreWait > 0) {
-            ScoreWait--;
-            if (ScoreWait == 0)
-                DoScenarioScore(ScoreType);
-        }
         break;
     }
 }

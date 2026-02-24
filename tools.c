@@ -231,13 +231,13 @@ int ConnectTile(int x, int y, short *tilePtr, int command) {
         return 0;
     }
 
-    /* AutoBulldoze feature - if trying to build road, rail, or wire */
     if (command >= 2 && command <= 4) {
-        /* Check if we have funds and if the tile can be bulldozed */
-        if (TotalFunds > 0 && ((tile = (*tilePtr)) & BULLBIT)) {
-            /* Can bulldoze small objects and rubble */
+        if (AutoBulldoze &&
+            TotalFunds > 0 &&
+            ((tile = (*tilePtr)) & BULLBIT)) {
             tile &= LOMASK;
-            if (tile >= RUBBLE && tile <= LASTRUBBLE) {
+            if ((tile >= TINYEXP && tile <= LASTTINYEXP) ||
+                (tile < ROADBASE && tile != DIRT)) {
                 Spend(1);
                 *tilePtr = DIRT;
             }
@@ -818,53 +818,81 @@ int LayRoad(int x, int y, short *tilePtr) {
     short tile = *tilePtr & LOMASK;
 
     if (tile == RIVER || tile == REDGE || tile == CHANNEL) {
-        /* Build a bridge over water */
+        short nb;
         cost = BRIDGE_COST;
 
         if (TotalFunds < cost) {
             return 0;
         }
 
-        Spend(cost);
-        if (((y > 0) && (Map[y - 1][x] & LOMASK) == VRAIL) ||
-            ((y < WORLD_Y - 1) && (Map[y + 1][x] & LOMASK) == VRAIL)) {
-            *tilePtr = VRAILROAD | BULLBIT;
-        } else {
-            *tilePtr = HBRIDGE | BULLBIT;
+        if (x < WORLD_X - 1) {
+            nb = NormalizeRoad((short)(Map[y][x + 1] & LOMASK));
+            if (nb == VRAILROAD || nb == HBRIDGE ||
+                (nb >= ROADS && nb <= HROADPOWER)) {
+                Spend(cost);
+                *tilePtr = HBRIDGE | BULLBIT;
+                return 1;
+            }
         }
-        return 1;
+        if (x > 0) {
+            nb = NormalizeRoad((short)(Map[y][x - 1] & LOMASK));
+            if (nb == VRAILROAD || nb == HBRIDGE ||
+                (nb >= ROADS && nb <= INTERSECTION)) {
+                Spend(cost);
+                *tilePtr = HBRIDGE | BULLBIT;
+                return 1;
+            }
+        }
+        if (y < WORLD_Y - 1) {
+            nb = NormalizeRoad((short)(Map[y + 1][x] & LOMASK));
+            if (nb == HRAILROAD || nb == VROADPOWER ||
+                (nb >= VBRIDGE && nb <= INTERSECTION)) {
+                Spend(cost);
+                *tilePtr = VBRIDGE | BULLBIT;
+                return 1;
+            }
+        }
+        if (y > 0) {
+            nb = NormalizeRoad((short)(Map[y - 1][x] & LOMASK));
+            if (nb == HRAILROAD || nb == VROADPOWER ||
+                (nb >= VBRIDGE && nb <= INTERSECTION)) {
+                Spend(cost);
+                *tilePtr = VBRIDGE | BULLBIT;
+                return 1;
+            }
+        }
+        return 0;
     }
     
-    /* Handle crossing a rail line */
-    if (tile >= LHRAIL && tile <= LVRAIL10) {
+    if (tile == LHPOWER) {
         cost = ROAD_COST;
-        if (TotalFunds < cost) {
-            return 0;
-        }
+        if (TotalFunds < cost) return 0;
         Spend(cost);
-        if ((y > 0 && (Map[y-1][x] & LOMASK) >= ROADBASE && (Map[y-1][x] & LOMASK) <= LASTROAD) ||
-            (y < WORLD_Y-1 && (Map[y+1][x] & LOMASK) >= ROADBASE && (Map[y+1][x] & LOMASK) <= LASTROAD)) {
-            *tilePtr = HRAILROAD | BULLBIT | BURNBIT;
-        } else {
-            *tilePtr = VRAILROAD | BULLBIT | BURNBIT;
-        }
+        *tilePtr = VROADPOWER | CONDBIT | BULLBIT | BURNBIT;
         return 1;
     }
 
-    /* Handle crossing a power line */
-    if (tile >= POWERBASE && (tile <= LASTPOWER)) {
+    if (tile == LVPOWER) {
         cost = ROAD_COST;
-        if (TotalFunds < cost) {
-            return 0;
-        }
+        if (TotalFunds < cost) return 0;
         Spend(cost);
-        if (y > 0 && y < WORLD_Y - 1 &&
-            (Map[y-1][x] & LOMASK) >= POWERBASE && (Map[y-1][x] & LOMASK) <= LASTPOWER &&
-            (Map[y+1][x] & LOMASK) >= POWERBASE && (Map[y+1][x] & LOMASK) <= LASTPOWER) {
-            *tilePtr = HROADPOWER | CONDBIT | BULLBIT | BURNBIT;
-        } else {
-            *tilePtr = VROADPOWER | CONDBIT | BULLBIT | BURNBIT;
-        }
+        *tilePtr = HROADPOWER | CONDBIT | BULLBIT | BURNBIT;
+        return 1;
+    }
+
+    if (tile == LHRAIL) {
+        cost = ROAD_COST;
+        if (TotalFunds < cost) return 0;
+        Spend(cost);
+        *tilePtr = HRAILROAD | BULLBIT | BURNBIT;
+        return 1;
+    }
+
+    if (tile == LVRAIL) {
+        cost = ROAD_COST;
+        if (TotalFunds < cost) return 0;
+        Spend(cost);
+        *tilePtr = VRAILROAD | BULLBIT | BURNBIT;
         return 1;
     }
 
@@ -891,48 +919,81 @@ int LayRail(int x, int y, short *tilePtr) {
     short tile = *tilePtr & LOMASK;
 
     if (tile == RIVER || tile == REDGE || tile == CHANNEL) {
-        /* Build a rail tunnel over water */
+        short nb;
         cost = TUNNEL_COST;
 
         if (TotalFunds < cost) {
             return 0;
         }
 
-        Spend(cost);
-        *tilePtr = HRAIL | BULLBIT;
-        return 1;
+        if (x < WORLD_X - 1) {
+            nb = NormalizeRoad((short)(Map[y][x + 1] & LOMASK));
+            if (nb == RAILVPOWERH || nb == HRAIL ||
+                (nb >= LHRAIL && nb <= HRAILROAD)) {
+                Spend(cost);
+                *tilePtr = HRAIL | BULLBIT;
+                return 1;
+            }
+        }
+        if (x > 0) {
+            nb = NormalizeRoad((short)(Map[y][x - 1] & LOMASK));
+            if (nb == RAILVPOWERH || nb == HRAIL ||
+                (nb > VRAIL && nb < VRAILROAD)) {
+                Spend(cost);
+                *tilePtr = HRAIL | BULLBIT;
+                return 1;
+            }
+        }
+        if (y < WORLD_Y - 1) {
+            nb = NormalizeRoad((short)(Map[y + 1][x] & LOMASK));
+            if (nb == RAILHPOWERV || nb == VRAILROAD ||
+                (nb > HRAIL && nb < HRAILROAD)) {
+                Spend(cost);
+                *tilePtr = VRAIL | BULLBIT;
+                return 1;
+            }
+        }
+        if (y > 0) {
+            nb = NormalizeRoad((short)(Map[y - 1][x] & LOMASK));
+            if (nb == RAILHPOWERV || nb == VRAILROAD ||
+                (nb > HRAIL && nb < HRAILROAD)) {
+                Spend(cost);
+                *tilePtr = VRAIL | BULLBIT;
+                return 1;
+            }
+        }
+        return 0;
     }
     
-    /* Handle crossing a road */
-    if (tile >= ROADBASE && tile <= LASTROAD) {
+    if (tile == LHPOWER) {
         cost = RAIL_COST;
-        if (TotalFunds < cost) {
-            return 0;
-        }
+        if (TotalFunds < cost) return 0;
         Spend(cost);
-        if ((y > 0 && (Map[y-1][x] & LOMASK) >= LHRAIL && (Map[y-1][x] & LOMASK) <= LVRAIL10) ||
-            (y < WORLD_Y-1 && (Map[y+1][x] & LOMASK) >= LHRAIL && (Map[y+1][x] & LOMASK) <= LVRAIL10)) {
-            *tilePtr = VRAILROAD | BULLBIT | BURNBIT;
-        } else {
-            *tilePtr = HRAILROAD | BULLBIT | BURNBIT;
-        }
+        *tilePtr = RAILVPOWERH | CONDBIT | BULLBIT;
         return 1;
     }
 
-    /* Handle crossing a power line */
-    if (tile >= POWERBASE && (tile <= LASTPOWER)) {
+    if (tile == LVPOWER) {
         cost = RAIL_COST;
-        if (TotalFunds < cost) {
-            return 0;
-        }
+        if (TotalFunds < cost) return 0;
         Spend(cost);
-        if (y > 0 && y < WORLD_Y - 1 &&
-            (Map[y-1][x] & LOMASK) >= POWERBASE && (Map[y-1][x] & LOMASK) <= LASTPOWER &&
-            (Map[y+1][x] & LOMASK) >= POWERBASE && (Map[y+1][x] & LOMASK) <= LASTPOWER) {
-            *tilePtr = RAILHPOWERV | CONDBIT | BULLBIT | BURNBIT;
-        } else {
-            *tilePtr = RAILVPOWERH | CONDBIT | BULLBIT | BURNBIT;
-        }
+        *tilePtr = RAILHPOWERV | CONDBIT | BULLBIT;
+        return 1;
+    }
+
+    if (tile == ROADS) {
+        cost = RAIL_COST;
+        if (TotalFunds < cost) return 0;
+        Spend(cost);
+        *tilePtr = VRAILROAD | BULLBIT | BURNBIT;
+        return 1;
+    }
+
+    if (tile == ROADS2) {
+        cost = RAIL_COST;
+        if (TotalFunds < cost) return 0;
+        Spend(cost);
+        *tilePtr = HRAILROAD | BULLBIT | BURNBIT;
         return 1;
     }
 
@@ -1011,45 +1072,39 @@ int LayWire(int x, int y, short *tilePtr) {
         return 1;
     }
 
-    /* Handle crossing a road - use NeutralizeRoad parity for orientation */
-    if (tile >= ROADBASE && tile <= LASTROAD) {
+    if (tile == ROADS) {
         cost = WIRE_COST;
-        if (TotalFunds < cost) {
-            return 0;
-        }
+        if (TotalFunds < cost) return 0;
         Spend(cost);
-        if ((tile & 1) == 0) {
-            *tilePtr = HROADPOWER | CONDBIT | BULLBIT | BURNBIT;
-        } else {
-            *tilePtr = VROADPOWER | CONDBIT | BULLBIT | BURNBIT;
-        }
+        *tilePtr = HROADPOWER | CONDBIT | BULLBIT | BURNBIT;
         return 1;
     }
-    
-    /* Handle crossing a rail */
-    if (tile >= RAILBASE && tile <= LASTRAIL) {
+
+    if (tile == ROADS2) {
         cost = WIRE_COST;
-        if (TotalFunds < cost) {
-            return 0;
-        }
+        if (TotalFunds < cost) return 0;
         Spend(cost);
-        /* Use the built-in rail/power crossing tiles */
-        if (x > 0 && x < WORLD_X - 1 && 
-            (Map[y][x-1] & LOMASK) >= RAILBASE && (Map[y][x-1] & LOMASK) <= LASTRAIL &&
-            (Map[y][x+1] & LOMASK) >= RAILBASE && (Map[y][x+1] & LOMASK) <= LASTRAIL) {
-            /* Horizontal rail needs vertical power line crossing */
-            *tilePtr = RAILVPOWERH | CONDBIT | BULLBIT | BURNBIT;
-        } else {
-            /* Vertical rail needs horizontal power line crossing */
-            *tilePtr = RAILHPOWERV | CONDBIT | BULLBIT | BURNBIT;
-        }
+        *tilePtr = VROADPOWER | CONDBIT | BULLBIT | BURNBIT;
+        return 1;
+    }
+
+    if (tile == LHRAIL) {
+        cost = WIRE_COST;
+        if (TotalFunds < cost) return 0;
+        Spend(cost);
+        *tilePtr = RAILHPOWERV | CONDBIT | BULLBIT | BURNBIT;
+        return 1;
+    }
+
+    if (tile == LVRAIL) {
+        cost = WIRE_COST;
+        if (TotalFunds < cost) return 0;
+        Spend(cost);
+        *tilePtr = RAILVPOWERH | CONDBIT | BULLBIT | BURNBIT;
         return 1;
     }
 
     if (tile == DIRT || (tile >= TINYEXP && tile <= LASTTINYEXP)) {
-        /* Lay wire on dirt */
-        short connectMask;
-        
         cost = WIRE_COST;
 
         if (TotalFunds < cost) {

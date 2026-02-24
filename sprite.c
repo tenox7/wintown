@@ -35,7 +35,7 @@ static short CDx[12] = {0,  0,  6,  8,  6,  0, -6, -8, -6,  8,  8,  8};
 static short CDy[12] = {0, -8, -6,  0,  6,  8,  6,  0, -6,  0,  0,  0};
 
 /* Animation frames for trains: dir 0=E, 1=S, 2=W, 3=N, 4=stop */
-static short TrainPic2[5] = {2, 1, 2, 1, 5};
+static short TrainPic2[5] = {1, 2, 1, 2, 5};
 
 /* Turn direction table for sprite navigation */
 static short Dir2Tab[16] = {0, 1, 2, 3, 4, 7, 6, 5, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -56,6 +56,7 @@ static void MakeSound(int soundId, int x, int y);
 static short TryOther(int x, int y, int dir, SimSprite *sprite);
 static void CheckCollisions(SimSprite *sprite);
 static int IsWater(short tile);
+static void StartFire(int x, int y);
 
 /* Initialize sprite system */
 void InitSprites(void) {
@@ -602,24 +603,37 @@ void DoPoliceSprite(SimSprite *sprite) {
 void DoExplosion(SimSprite *sprite) {
     int x, y;
 
-    if (sprite->frame == 0) {
-        if (!disastersDisabled) {
-            x = sprite->x >> 4;
+    if (!(SpriteCycle & 1)) {
+        if (sprite->frame == 1) {
+            MakeSound(SOUND_EXPLOSION_HIGH, sprite->x, sprite->y);
+            x = (sprite->x >> 4) + 3;
             y = sprite->y >> 4;
-            makeFire(x, y);
-            makeFire(x - 1, y - 1);
-            makeFire(x + 1, y - 1);
-            makeFire(x - 1, y + 1);
-            makeFire(x + 1, y + 1);
+            SendMesAt(32, x, y);
         }
-        MakeSound(SOUND_EXPLOSION_HIGH, sprite->x, sprite->y);
+        sprite->frame++;
     }
-
-    sprite->frame++;
 
     if (sprite->frame > 6) {
-        DestroySprite(sprite);
+        sprite->frame = 0;
+        StartFire(sprite->x + 48 - 8, sprite->y + 16);
+        StartFire(sprite->x + 48 - 24, sprite->y);
+        StartFire(sprite->x + 48 + 8, sprite->y);
+        StartFire(sprite->x + 48 - 24, sprite->y + 32);
+        StartFire(sprite->x + 48 + 8, sprite->y + 32);
+        return;
     }
+}
+
+static void StartFire(int x, int y) {
+    short z, t;
+    x >>= 4;
+    y >>= 4;
+    if (x < 0 || x >= WORLD_X || y < 0 || y >= WORLD_Y) return;
+    z = Map[y][x];
+    t = z & LOMASK;
+    if (!(z & BURNBIT) && t != 0) return;
+    if (z & ZONEBIT) return;
+    Map[y][x] = FIRE + (SimRandom(4)) + ANIMBIT;
 }
 
 /* Helper function to determine if tile is water */
@@ -726,8 +740,8 @@ static int TurnTo(int p, int d) {
         if ((p - d) < 4) p--;
         else p++;
     }
-    if (p > 8) p = 0;
-    if (p < 0) p = 8;
+    if (p > 8) p = 1;
+    if (p < 1) p = 8;
     return p;
 }
 
@@ -739,7 +753,7 @@ static short GetChar(int x, int y) {
     mapY = y >> 4;
     
     if (mapX < 0 || mapX >= WORLD_X || mapY < 0 || mapY >= WORLD_Y) {
-        return DIRT;
+        return -1;
     }
     
     return Map[mapY][mapX] & LOMASK;
@@ -1035,10 +1049,9 @@ SimSprite* GetSpriteByType(int type) {
 
 /* Monster (Godzilla) sprite behavior */
 void DoMonsterSprite(SimSprite *sprite) {
-    static short Gx[5] = {2, 2, -2, -2, 0}; /* X movement deltas */
-    static short Gy[5] = {-2, 2, 2, -2, 0}; /* Y movement deltas */
+    static short Gx[5] = {2, 2, -2, -2, 0};
+    static short Gy[5] = {-2, 2, 2, -2, 0};
     int dx, dy, d, z;
-    int mapX, mapY;
     
     /* Initialize sprite on first run */
     if (sprite->frame == 0) {
@@ -1098,24 +1111,19 @@ void DoMonsterSprite(SimSprite *sprite) {
     sprite->frame = z + 1; /* Frame 1-16 */
     
     if (!(sprite->count & 3) && !disastersDisabled) {
-        mapX = (sprite->x + 48) >> 4;
-        mapY = (sprite->y + 16) >> 4;
-        if (BOUNDS_CHECK(mapX, mapY)) {
-            makeFire(mapX, mapY);
-            makeFire(mapX - 1, mapY - 1);
-            makeFire(mapX + 1, mapY - 1);
-            makeFire(mapX - 1, mapY + 1);
-            makeFire(mapX + 1, mapY + 1);
-        }
+        StartFire(sprite->x + 48, sprite->y + 16);
+        StartFire(sprite->x + 48 - 16, sprite->y);
+        StartFire(sprite->x + 48 + 16, sprite->y);
+        StartFire(sprite->x + 48 - 16, sprite->y + 32);
+        StartFire(sprite->x + 48 + 16, sprite->y + 32);
     }
 }
 
 /* Tornado sprite behavior */
 void DoTornadoSprite(SimSprite *sprite) {
-    static short CDx[9] = {2, 3, 2, 0, -2, -3}; /* Random X movement */
-    static short CDy[9] = {-2, 0, 2, 3, 2, 0}; /* Random Y movement */
+    static short CDx[9] = {2, 3, 2, 0, -2, -3};
+    static short CDy[9] = {-2, 0, 2, 3, 2, 0};
     int z, d;
-    int mapX, mapY;
     
     /* Initialize sprite on first run */
     if (sprite->frame == 0) {
@@ -1152,14 +1160,12 @@ void DoTornadoSprite(SimSprite *sprite) {
     }
     sprite->frame = z;
 
-    mapX = (sprite->x + 48) >> 4;
-    mapY = (sprite->y + 40) >> 4;
-    if (BOUNDS_CHECK(mapX, mapY) && !disastersDisabled) {
-        makeFire(mapX, mapY);
-        makeFire(mapX - 1, mapY - 1);
-        makeFire(mapX + 1, mapY - 1);
-        makeFire(mapX - 1, mapY + 1);
-        makeFire(mapX + 1, mapY + 1);
+    if (!disastersDisabled) {
+        StartFire(sprite->x + 48, sprite->y + 40);
+        StartFire(sprite->x + 48 - 16, sprite->y + 24);
+        StartFire(sprite->x + 48 + 16, sprite->y + 24);
+        StartFire(sprite->x + 48 - 16, sprite->y + 56);
+        StartFire(sprite->x + 48 + 16, sprite->y + 56);
     }
 }
 
