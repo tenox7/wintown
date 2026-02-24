@@ -28,14 +28,14 @@ extern BOOL isToolDragging;
 #define TOOL_RESIDENTIAL_COST   100
 #define TOOL_COMMERCIAL_COST    100
 #define TOOL_INDUSTRIAL_COST    100
-#define TOOL_FIRESTATION_COST   250
-#define TOOL_POLICESTATION_COST 250
+#define TOOL_FIRESTATION_COST   500
+#define TOOL_POLICESTATION_COST 500
 #define TOOL_STADIUM_COST       5000
 #define TOOL_SEAPORT_COST       3000
 #define TOOL_POWERPLANT_COST    3000
 #define TOOL_NUCLEAR_COST       5000
 #define TOOL_AIRPORT_COST       10000
-#define TOOL_NETWORK_COST       1000
+#define TOOL_NETWORK_COST       100
 
 /* Tool size constants */
 #define TOOL_SIZE_1X1           1  /* Single tile tools (road, rail, wire, etc.) */

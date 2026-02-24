@@ -55,7 +55,7 @@ void CollectTax(void) {
     TaxFund = 0;
 
     /* Calculate funding requirements with difficulty multipliers */
-    RoadFund = (QUAD)((RoadTotal + RailTotal) * 1 * DifficultyMaintenanceCost[GameLevel]);     /* Apply maintenance cost multiplier */
+    RoadFund = (QUAD)((RoadTotal + (RailTotal * 2)) * DifficultyMaintenanceCost[GameLevel]);
     FireFund = FirePop * 100;     /* $100 per fire station */
     PoliceFund = PolicePop * 100; /* $100 per police station */
 
@@ -139,7 +139,7 @@ void DoBudget(void) {
     roadInt = (QUAD)(((float)RoadFund) * RoadPercent);
 
     total = fireInt + policeInt + roadInt;
-    yumDuckets = TaxFund + TotalFunds;
+    yumDuckets = TotalFunds;
 
     /* Check if budget window should be shown */
     if (!AutoBudget || (yumDuckets < total && !fromMenu)) {
@@ -157,18 +157,14 @@ void DoBudget(void) {
         /* Show budget window and wait for user input */
         result = ShowBudgetWindowAndWait(hwndMain);
         
-        /* If user cancelled, re-enable auto-budget as fallback */
-        if (result == IDCANCEL) {
-            AutoBudget = 1;
-            addGameLog("Budget cancelled - Auto-budget re-enabled");
-        }
+        /* User cancelled - do NOT re-enable auto-budget (matches original) */
         
         /* Recalculate with new values after user input */
         fireInt = (QUAD)(((float)FireFund) * FirePercent);
         policeInt = (QUAD)(((float)PoliceFund) * PolicePercent);
         roadInt = (QUAD)(((float)RoadFund) * RoadPercent);
         total = fireInt + policeInt + roadInt;
-        yumDuckets = TaxFund + TotalFunds;
+        yumDuckets = TotalFunds;
     }
 
     /* If we have enough money for full funding */

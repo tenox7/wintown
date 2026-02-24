@@ -97,10 +97,7 @@ static int TestForCond(short TFDir) {
     if (MoveMapSim(TFDir)) {
         tile = Map[SMapY][SMapX] & LOMASK;
 
-        /* Check if tile can conduct power and is not already powered.
-           NOTE: ZONEBIT-flagged tiles can also conduct power even if CONDBIT is not set.
-           This is critical for residential zones to get power. */
-        if (((Map[SMapY][SMapX] & CONDBIT) || (Map[SMapY][SMapX] & ZONEBIT)) && (tile != NUCLEAR) &&
+        if ((Map[SMapY][SMapX] & CONDBIT) && (tile != NUCLEAR) &&
             (tile != POWERPLANT) && !(Map[SMapY][SMapX] & POWERBIT)) {
             SMapX = xsave;
             SMapY = ysave;

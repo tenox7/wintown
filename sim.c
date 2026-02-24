@@ -161,9 +161,7 @@ static short CChr9;
 
 /* Random number generator - Windows compatible */
 void RandomlySeedRand(void) {
-    /* Using a fixed seed of 12345 gives more consistent results while still allowing variation */
-    static int fixedSeed = 12345;
-    srand((unsigned int)fixedSeed);
+    srand((unsigned int)GetTickCount());
 }
 
 /* Public random number function - available to other modules */
