@@ -985,22 +985,17 @@ int LayWire(int x, int y, short *tilePtr) {
         return 1;
     }
 
-    /* Handle crossing a road */
+    /* Handle crossing a road - use NeutralizeRoad parity for orientation */
     if (tile >= ROADBASE && tile <= LASTROAD) {
         cost = WIRE_COST;
         if (TotalFunds < cost) {
             return 0;
         }
         Spend(cost);
-        /* Use the built-in road/power crossing tiles */
-        if (x > 0 && x < WORLD_X - 1 && 
-            (Map[y][x-1] & LOMASK) >= ROADBASE && (Map[y][x-1] & LOMASK) <= LASTROAD &&
-            (Map[y][x+1] & LOMASK) >= ROADBASE && (Map[y][x+1] & LOMASK) <= LASTROAD) {
-            /* Horizontal road needs vertical power line crossing */
-            *tilePtr = VROADPOWER | CONDBIT | BULLBIT | BURNBIT;
-        } else {
-            /* Vertical road needs horizontal power line crossing */
+        if ((tile & 1) == 0) {
             *tilePtr = HROADPOWER | CONDBIT | BULLBIT | BURNBIT;
+        } else {
+            *tilePtr = VROADPOWER | CONDBIT | BULLBIT | BURNBIT;
         }
         return 1;
     }
@@ -1146,6 +1141,13 @@ void FixSingle(int x, int y) {
 
     /* Skip some types of tiles */
     if (tile < 1 || tile >= LASTTILE) {
+        return;
+    }
+
+    /* Skip crossing tiles - they are set by placement code */
+    if (tile == HROADPOWER || tile == VROADPOWER ||
+        tile == RAILHPOWERV || tile == RAILVPOWERH ||
+        tile == HRAILROAD || tile == VRAILROAD) {
         return;
     }
 

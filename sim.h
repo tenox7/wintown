@@ -137,16 +137,11 @@ typedef long QUAD;
  #define ROADS7		72  /* North-East corner - RoadTable[6] */
  #define ROADS8		73  /* South-East corner - RoadTable[7] */
  #define ROADS9		74  /* South-West corner - RoadTable[8] */
- #define ROADS10		75  /* T-junction East-South-West - RoadTable[9] */
- #define ROADS11		76  /* T-junction North-South-West - RoadTable[10] */
- #define ROADS12		77  /* T-junction North-East-South - RoadTable[11] */
- #define ROADS13		78  /* T-junction North-East-West - RoadTable[12] */
- #define ROADS14		86  /* North-South road with North connection - RoadTable[13] */
- #define ROADS15		87  /* East-West road with East and West connections - RoadTable[14] */
- #define ROADS16		88  /* North-South road with North and South connections - RoadTable[15] */
- #define INTERSECTION	89  /* All connections (North, East, South, West) */
- #define HROADPOWER	84  /* Horizontal road with vertical power line */
- #define VROADPOWER	85  /* Vertical road with horizontal power line */
+ #define ROADS10		75  /* T-junction - RoadTable[9] */
+ #define ROADS11		76  /* 4-way intersection - RoadTable[15] */
+ #define HROADPOWER	77  /* Horizontal road with vertical power line */
+ #define VROADPOWER	78  /* Vertical road with horizontal power line */
+ #define INTERSECTION	76  /* All connections (same as ROADS11) */
  #define BRWH		79
  #define LTRFBASE	80
  #define BRWV		95
