@@ -5257,8 +5257,8 @@ void drawCity(HDC hdc) {
                             }
                             
                             /* Draw sprite with transparency (magenta is transparent) */
-                            DrawTransparentBitmap(hdc, spriteScreenX - 16, spriteScreenY - 16, 
-                                                32, 32, hdcSprites, 0, 0, RGB(255, 0, 255));
+                            DrawTransparentBitmap(hdc, spriteScreenX - sprite->width / 2, spriteScreenY - sprite->height / 2,
+                                                sprite->width, sprite->height, hdcSprites, 0, 0, RGB(255, 0, 255));
                             
                             /* Restore palette and DC */
                             if (hOldPalette) {

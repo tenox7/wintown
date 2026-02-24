@@ -418,72 +418,40 @@ void DoShipSprite(SimSprite *sprite) {
     }
 }
 
-/* Airplane sprite behavior */
+/* Airplane sprite behavior (based on original Micropolis) */
 void DoAirplaneSprite(SimSprite *sprite) {
-    int dx, dy;
-    
-    if (sprite->control < 0) {
-        /* Taking off */
-        if (sprite->frame > 8) {
-            MoveSprite(sprite, MOVEMENT_TYPE_AIRPLANE);
-            
-            if (sprite->control < -1) {
-                sprite->control++;
-            } else {
-                /* Pick random destination */
-                sprite->dest_x = sprite->orig_x - HELICOPTER_WANDER_OFFSET + SimRandom(HELICOPTER_WANDER_RANGE);
-                sprite->dest_y = sprite->orig_y - HELICOPTER_WANDER_OFFSET + SimRandom(HELICOPTER_WANDER_RANGE);
-                
-                if (sprite->dest_x < 0) sprite->dest_x = 30;
-                if (sprite->dest_y < 0) sprite->dest_y = 30;
-                if (sprite->dest_x >= WORLD_W) sprite->dest_x = WORLD_W - 30;
-                if (sprite->dest_y >= WORLD_H) sprite->dest_y = WORLD_H - 30;
-                
-                sprite->control = 0;
-            }
+    int z, d;
+
+    z = sprite->frame;
+
+    if (!(SpriteCycle % 5)) {
+        if (z > 8) {
+            z--;
+            if (z < 9) z = 3;
+            sprite->frame = z;
         } else {
-            sprite->frame++;
+            d = GetDirection(sprite->x, sprite->y, sprite->dest_x, sprite->dest_y);
+            z = TurnTo(z, d);
+            sprite->frame = z;
         }
-    } else {
-        /* In flight */
-        sprite->count--;
-        if (sprite->count < 0) {
-            sprite->count = 3;
-            
-            /* Navigate toward destination */
-            if (sprite->control == 0) {
-                dx = sprite->dest_x - sprite->x;
-                dy = sprite->dest_y - sprite->y;
-                
-                if (abs(dx) < 8 && abs(dy) < 8) {
-                    /* Reached destination - return to airport */
-                    sprite->dest_x = sprite->orig_x;
-                    sprite->dest_y = sprite->orig_y;
-                    sprite->control = 1;
-                } else {
-                    sprite->dir = GetDirection(sprite->x, sprite->y, sprite->dest_x, sprite->dest_y);
-                }
-            } else {
-                /* Returning to airport */
-                dx = sprite->dest_x - sprite->x;
-                dy = sprite->dest_y - sprite->y;
-                
-                if (abs(dx) < 8 && abs(dy) < 8) {
-                    /* Landing */
-                    DestroySprite(sprite);
-                    return;
-                } else {
-                    sprite->dir = GetDirection(sprite->x, sprite->y, sprite->dest_x, sprite->dest_y);
-                }
-            }
-            
-            sprite->frame = sprite->dir;
-        }
-        
-        MoveSprite(sprite, MOVEMENT_TYPE_AIRPLANE);
     }
-    
-    /* Check for collisions with helicopters */
+
+    {
+        int dx, dy;
+        dx = sprite->dest_x - sprite->x;
+        dy = sprite->dest_y - sprite->y;
+        if (abs(dx) + abs(dy) < 50) {
+            sprite->dest_x = SimRandom((WORLD_X * 16) + 100) - 50;
+            sprite->dest_y = SimRandom((WORLD_Y * 16) + 100) - 50;
+        }
+    }
+
+    sprite->dir = z;
+    sprite->x += CDx[z];
+    sprite->y += CDy[z];
+
+    if (SpriteNotInBounds(sprite)) sprite->frame = 0;
+
     CheckCollisions(sprite);
 }
 
@@ -715,41 +683,29 @@ static short TryOther(int x, int y, int dir, SimSprite *sprite) {
     return dir; /* No alternate found */
 }
 
-/* Get direction from origin to destination */
+/* Get direction from origin to destination (matching original Micropolis GetDir) */
 static int GetDirection(int orgX, int orgY, int desX, int desY) {
-    int dispX, dispY;
-    int dir = 0;
-    
+    static short Gdtab[13] = { 0, 3, 2, 1, 3, 4, 5, 7, 6, 5, 7, 8, 1 };
+    int dispX, dispY, z;
+
     dispX = desX - orgX;
     dispY = desY - orgY;
-    
+
     if (dispX < 0) {
-        if (dispY < 0) {
-            dir = 5; /* Northwest */
-        } else if (dispY == 0) {
-            dir = 6; /* West */
-        } else {
-            dir = 7; /* Southwest */
-        }
-    } else if (dispX == 0) {
-        if (dispY < 0) {
-            dir = 0; /* North */
-        } else if (dispY > 0) {
-            dir = 4; /* South */
-        } else {
-            dir = 8; /* Stationary */
-        }
+        z = (dispY < 0) ? 11 : 8;
     } else {
-        if (dispY < 0) {
-            dir = 1; /* Northeast */
-        } else if (dispY == 0) {
-            dir = 2; /* East */
-        } else {  
-            dir = 3; /* Southeast */
-        }
+        z = (dispY < 0) ? 2 : 5;
     }
-    
-    return dir;
+
+    if (dispX < 0) dispX = -dispX;
+    if (dispY < 0) dispY = -dispY;
+
+    if ((dispX << 1) < dispY) z++;
+    else if ((dispY << 1) < dispX) z--;
+
+    if (z < 0 || z > 12) z = 0;
+
+    return Gdtab[z];
 }
 
 /* Turn toward desired direction (1 step at a time, shortest path) */
@@ -762,8 +718,8 @@ static int TurnTo(int p, int d) {
         if ((p - d) < 4) p--;
         else p++;
     }
-    if (p > 7) p = 0;
-    if (p < 0) p = 7;
+    if (p > 8) p = 0;
+    if (p < 0) p = 8;
     return p;
 }
 
