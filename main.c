@@ -2077,18 +2077,15 @@ void ToolDrag(int screenX, int screenY) {
             if ((dtx >= 1) && (dty >= 1)) {
                 if (dtx > dty) {
                     /* Fill horizontal first */
-                    HandleToolMouse(tx * TILE_SIZE + (TILE_SIZE/2), 
-                                   ly * TILE_SIZE + (TILE_SIZE/2), xOffset, yOffset);
+                    ApplyTool(tx, ly);
                 } else {
                     /* Fill vertical first */
-                    HandleToolMouse(lx * TILE_SIZE + (TILE_SIZE/2), 
-                                   ty * TILE_SIZE + (TILE_SIZE/2), xOffset, yOffset);
+                    ApplyTool(lx, ty);
                 }
             }
             
             /* Apply tool at interpolated position */
-            HandleToolMouse(tx * TILE_SIZE + (TILE_SIZE/2), 
-                           ty * TILE_SIZE + (TILE_SIZE/2), xOffset, yOffset);
+            ApplyTool(tx, ty);
             
             lx = tx;
             ly = ty;
