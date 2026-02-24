@@ -33,11 +33,6 @@ static int TestForCond(short TFDir);
 
 /* Move in a direction on the map during power scan */
 static int MoveMapSim(short MDir) {
-    int xSave, ySave;
-
-    xSave = SMapX;
-    ySave = SMapY;
-
     switch (MDir) {
     case 0: /* North */
         if (SMapY > 0) {

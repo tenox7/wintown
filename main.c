@@ -80,6 +80,7 @@
 #define IDM_SETTINGS_LEVEL_HARD 8104
 #define IDM_SETTINGS_AUTO_BUDGET 8105
 #define IDM_SETTINGS_AUTO_BULLDOZE 8106
+#define IDM_SETTINGS_AUTO_GOTO 8107
 
 
 /* View menu IDs - Budget Window */
@@ -236,6 +237,8 @@ static int cyClient = 0;
 static int xOffset = 0;
 static int yOffset = 0;
 static int toolbarWidth = 132; /* Original Micropolis toolbar width */
+
+int AutoGo = 1; /* Auto-scroll to event locations */
 
 static BOOL isMouseDown = FALSE; /* Used for map dragging */
 static int lastMouseX = 0;
@@ -733,6 +736,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             addGameLog("User selected new game option: type=%d, difficulty=%d", config.gameType, config.difficulty);
             if (initNewGame(&config)) {
                 addGameLog("New game started successfully");
+                SetGameSpeed(SPEED_MEDIUM);
                 InvalidateRect(hwndMain, NULL, TRUE);
             } else {
                 addGameLog("Failed to initialize new game");
@@ -772,6 +776,25 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     }
 
     return (int)msg.wParam;
+}
+
+void CenterMapOnTile(int tileX, int tileY) {
+    if (tileX < 0) tileX = 0;
+    if (tileY < 0) tileY = 0;
+    if (tileX >= WORLD_X) tileX = WORLD_X - 1;
+    if (tileY >= WORLD_Y) tileY = WORLD_Y - 1;
+
+    xOffset = (tileX * TILE_SIZE) - ((cxClient - toolbarWidth) / 2);
+    yOffset = (tileY * TILE_SIZE) - (cyClient / 2);
+
+    if (xOffset < 0) xOffset = 0;
+    if (yOffset < 0) yOffset = 0;
+    if (xOffset > WORLD_X * TILE_SIZE - (cxClient - toolbarWidth))
+        xOffset = WORLD_X * TILE_SIZE - (cxClient - toolbarWidth);
+    if (yOffset > WORLD_Y * TILE_SIZE - cyClient)
+        yOffset = WORLD_Y * TILE_SIZE - cyClient;
+
+    InvalidateRect(hwndMain, NULL, FALSE);
 }
 
 char *FormatNumber(long n, char *buf) {
@@ -2086,10 +2109,9 @@ LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         /* Load sprite bitmaps */
         loadSpriteBitmaps();
 
-        /* Initial tileset check will be handled by populateTilesetMenu */
         /* Initialize simulation */
         DoSimInit();
-        
+
         /* Refresh tileset menu after initialization to pick up any new tilesets */
         refreshTilesetMenu();
         return 0;
@@ -2101,10 +2123,7 @@ LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             if (showNewGameDialog(hwnd, &config)) {
                 if (initNewGame(&config)) {
                     addGameLog("New game started successfully");
-                    addGameLog("DEBUG: Before SetGameSpeed - SimPaused=%d, SimSpeed=%d", SimPaused, SimSpeed);
-                    /* Start the simulation at medium speed */
                     SetGameSpeed(SPEED_MEDIUM);
-                    addGameLog("DEBUG: After SetGameSpeed - SimPaused=%d, SimSpeed=%d", SimPaused, SimSpeed);
                     InvalidateRect(hwnd, NULL, TRUE);
                 } else {
                     MessageBox(hwnd, "Failed to start new game.", "Error", MB_OK | MB_ICONERROR);
@@ -2718,6 +2737,12 @@ LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             autoBulldoze = !autoBulldoze;
             CheckMenuItem(hSettingsMenu, IDM_SETTINGS_AUTO_BULLDOZE, autoBulldoze ? MF_CHECKED : MF_UNCHECKED);
             addGameLog("Auto-bulldoze %s", autoBulldoze ? "enabled" : "disabled");
+            return 0;
+
+        case IDM_SETTINGS_AUTO_GOTO:
+            AutoGo = !AutoGo;
+            CheckMenuItem(hSettingsMenu, IDM_SETTINGS_AUTO_GOTO, AutoGo ? MF_CHECKED : MF_UNCHECKED);
+            addGameLog("Auto-goto %s", AutoGo ? "enabled" : "disabled");
             return 0;
 
         default:
@@ -3846,6 +3871,7 @@ int loadFile(char *filename) {
 
         AutoBulldoze = MiscHis[52];
         AutoBudget = MiscHis[53];
+        AutoGo = MiscHis[54];
         TaxRate = MiscHis[56];
         SimSpeed = MiscHis[57];
         
@@ -3946,7 +3972,7 @@ int saveFile(char *filename) {
 
     MiscHis[52] = AutoBulldoze;
     MiscHis[53] = AutoBudget;
-    MiscHis[54] = 0;
+    MiscHis[54] = AutoGo;
     MiscHis[55] = 1;
     MiscHis[56] = TaxRate;
     MiscHis[57] = SimSpeed;
@@ -5282,6 +5308,7 @@ void openCityDialog(HWND hwnd) {
 
     if (GetOpenFileName(&ofn)) {
         loadCity(szFileName);
+        SetGameSpeed(gameSpeed ? gameSpeed : SPEED_MEDIUM);
     }
 }
 
@@ -5421,6 +5448,7 @@ HMENU createMainMenu(void) {
     /* Auto Settings */
     AppendMenu(hSettingsMenu, MF_STRING, IDM_SETTINGS_AUTO_BUDGET, "Auto &Budget");
     AppendMenu(hSettingsMenu, MF_STRING, IDM_SETTINGS_AUTO_BULLDOZE, "Auto B&ulldoze");
+    AppendMenu(hSettingsMenu, MF_STRING, IDM_SETTINGS_AUTO_GOTO, "Auto &Goto");
     AppendMenu(hSettingsMenu, MF_STRING, IDM_CHEATS_DISABLE_DISASTERS, "Enable &Disasters");
     
     /* Set default checkmarks */
@@ -5428,6 +5456,7 @@ HMENU createMainMenu(void) {
     CheckMenuItem(hSettingsMenu, IDM_SETTINGS_LEVEL_EASY, MF_CHECKED);
     CheckMenuItem(hSettingsMenu, IDM_SETTINGS_AUTO_BUDGET, AutoBudget ? MF_CHECKED : MF_UNCHECKED);
     CheckMenuItem(hSettingsMenu, IDM_SETTINGS_AUTO_BULLDOZE, autoBulldoze ? MF_CHECKED : MF_UNCHECKED);
+    CheckMenuItem(hSettingsMenu, IDM_SETTINGS_AUTO_GOTO, AutoGo ? MF_CHECKED : MF_UNCHECKED);
     CheckMenuItem(hSettingsMenu, IDM_CHEATS_DISABLE_DISASTERS, !disastersDisabled ? MF_CHECKED : MF_UNCHECKED);
 
     AppendMenu(hMainMenu, MF_POPUP, (UINT)hFileMenu, "&File");
@@ -6027,10 +6056,15 @@ void SetGameSpeed(int speed) {
     
     gameSpeed = speed;
     simTimerDelay = speedDelays[speed];
-    
+
     /* Update simulation speed */
     SetSimulationSpeed(hwndMain, speed);
-    
+
+    /* Ensure sim timer is running for non-paused speeds */
+    if (speed != SPEED_PAUSED && hwndMain) {
+        SetTimer(hwndMain, SIM_TIMER_ID, SIM_TIMER_INTERVAL, NULL);
+    }
+
     /* Update menu checkmarks */
     CheckMenuItem(hSettingsMenu, IDM_SIM_PAUSE, speed == SPEED_PAUSED ? MF_CHECKED : MF_UNCHECKED);
     CheckMenuItem(hSettingsMenu, IDM_SIM_SLOW, speed == SPEED_SLOW ? MF_CHECKED : MF_UNCHECKED);

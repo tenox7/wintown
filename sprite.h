@@ -141,6 +141,7 @@ void GenerateHelicopters(void);
 /* Utility functions */
 int GetSpriteCount(void);
 SimSprite* GetSprite(int index);
+SimSprite* GetSpriteByType(int type);
 void MoveSprite(SimSprite *sprite, int movementType);
 
 /* External variables that need to be defined elsewhere */

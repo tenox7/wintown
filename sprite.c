@@ -496,44 +496,64 @@ void DoCopterSprite(SimSprite *sprite) {
     }
     
     if (sprite->control < 0) {
-        /* Autonomous mode - seek monsters or report traffic */
-        if (sprite->count > 0) {
-            sprite->count--;
-        } else {
-            sprite->count = HELICOPTER_SOUND_TIMER;
-            
-            /* Report traffic */
-            dx = sprite->x >> 4;
-            dy = sprite->y >> 4;
-            
-            if (dx >= 0 && dx < WORLD_X/2 && dy >= 0 && dy < WORLD_Y/2) {
-                z = TrfDensity[dy][dx];
-                if (z > HELICOPTER_TRAFFIC_THRESHOLD && SimRandom(HELICOPTER_TRAFFIC_SOUND_CHANCE) == 0) {
-                    /* Report heavy traffic */
-                    MakeSound(SOUND_HEAVY_TRAFFIC, sprite->x, sprite->y);
-                    sprite->sound_count = HELICOPTER_SOUND_DURATION;
+        if (sprite->count > 0) sprite->count--;
+
+        if (!sprite->count) {
+            SimSprite *s = GetSpriteByType(SPRITE_MONSTER);
+            if (s != NULL) {
+                sprite->dest_x = s->x;
+                sprite->dest_y = s->y;
+            } else {
+                s = GetSpriteByType(SPRITE_TORNADO);
+                if (s != NULL) {
+                    sprite->dest_x = s->x;
+                    sprite->dest_y = s->y;
+                } else {
+                    sprite->dest_x = sprite->orig_x;
+                    sprite->dest_y = sprite->orig_y;
                 }
             }
-            
-            /* Look for monsters or disasters */
-            /* This would scan for monster sprites and navigate toward them */
-            
-            /* Random movement if no target */
-            if (SimRandom(HELICOPTER_DIRECTION_CHANCE) == 0) {
-                sprite->dir = SimRandom(8);
+        }
+
+        if (!sprite->count) {
+            dx = sprite->orig_x - sprite->x;
+            dy = sprite->orig_y - sprite->y;
+            if (abs(dx) + abs(dy) < 30) {
+                sprite->frame = 0;
+                return;
             }
         }
     } else {
-        /* Player controlled mode */
-        /* Navigation controlled by player input */
+        dx = sprite->dest_x - sprite->x;
+        dy = sprite->dest_y - sprite->y;
+        if (abs(dx) + abs(dy) < 16) {
+            sprite->dest_x = sprite->orig_x;
+            sprite->dest_y = sprite->orig_y;
+            sprite->control = -1;
+        }
     }
-    
+
+    if (!sprite->sound_count) {
+        dx = (sprite->x + 48) >> 5;
+        dy = sprite->y >> 5;
+        if (dx >= 0 && dx < (WORLD_X >> 1) && dy >= 0 && dy < (WORLD_Y >> 1)) {
+            if (TrfDensity[dy][dx] > 170 && (SimRandom(8) == 0)) {
+                SendMesAt(-41, (dx << 1) + 1, (dy << 1) + 1);
+                sprite->sound_count = 200;
+            }
+        }
+    }
+
+    {
+        int d;
+        z = sprite->frame;
+        d = GetDirection(sprite->x, sprite->y, sprite->dest_x, sprite->dest_y);
+        z = TurnTo(z, d);
+        sprite->frame = z;
+    }
+
     MoveSprite(sprite, MOVEMENT_TYPE_HELICOPTER);
-    
-    /* Update animation frame */
-    sprite->frame = sprite->dir;
-    
-    /* Check for collisions with aircraft */
+
     CheckCollisions(sprite);
 }
 
@@ -867,32 +887,41 @@ void GenerateTrains(void) {
     }
 }
 
-/* Generate ships at seaports */
+/* Generate ships at map edges where water meets the border */
 void GenerateShips(void) {
     int x, y;
-    short tile;
-    
-    if (SpriteCount >= MAX_SPRITES - 5) {
-        return;
-    }
-    
-    if (SimRandom(SHIP_SPAWN_FREQUENCY) != 0) {
-        return;
-    }
-    
-    /* Find seaports */
-    for (y = 0; y < WORLD_Y; y++) {
-        for (x = 0; x < WORLD_X; x++) {
-            tile = Map[y][x] & LOMASK;
-            
-            if (tile >= PORTBASE && tile <= LASTPORT) {
-                if (SimRandom(MELTDOWN_CHANCE) == 0) {
-                    /* Generate ship at port */
-                    NewSprite(SPRITE_SHIP, x << 4, y << 4);
-                    return;
-                }
+
+    if (SpriteCount >= MAX_SPRITES - 5) return;
+    if (PortPop <= 0) return;
+    if (SimRandom(SHIP_SPAWN_FREQUENCY) != 0) return;
+
+    if (SimRandom(4) == 0) {
+        for (x = 4; x < WORLD_X - 2; x++)
+            if ((Map[0][x] & LOMASK) == CHANNEL) {
+                NewSprite(SPRITE_SHIP, (x << 4) - 47, 0);
+                return;
             }
-        }
+    }
+    if (SimRandom(4) == 0) {
+        for (y = 1; y < WORLD_Y - 2; y++)
+            if ((Map[y][0] & LOMASK) == CHANNEL) {
+                NewSprite(SPRITE_SHIP, -47, y << 4);
+                return;
+            }
+    }
+    if (SimRandom(4) == 0) {
+        for (x = 4; x < WORLD_X - 2; x++)
+            if ((Map[WORLD_Y - 1][x] & LOMASK) == CHANNEL) {
+                NewSprite(SPRITE_SHIP, (x << 4) - 47, (WORLD_Y - 1) << 4);
+                return;
+            }
+    }
+    if (SimRandom(4) == 0) {
+        for (y = 1; y < WORLD_Y - 2; y++)
+            if ((Map[y][WORLD_X - 1] & LOMASK) == CHANNEL) {
+                NewSprite(SPRITE_SHIP, ((WORLD_X - 1) << 4) - 47, y << 4);
+                return;
+            }
     }
 }
 
@@ -1011,6 +1040,16 @@ SimSprite* GetSprite(int index) {
         if (GlobalSprites[index].type != SPRITE_UNDEFINED) {
             return &GlobalSprites[index];
         }
+    }
+    return NULL;
+}
+
+/* Find first active sprite of a given type */
+SimSprite* GetSpriteByType(int type) {
+    int i;
+    for (i = 0; i < MAX_SPRITES; i++) {
+        if (GlobalSprites[i].type == type && GlobalSprites[i].frame != 0)
+            return &GlobalSprites[i];
     }
     return NULL;
 }

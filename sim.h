@@ -547,6 +547,7 @@ extern QUAD FireSpend;         /* Actual fire spending */
 extern QUAD TaxFund;           /* Tax income for current year */
 extern int AutoBudget;         /* Auto-budget enabled flag */
 extern int AutoBulldoze;       /* Auto-bulldoze enabled flag */
+extern int AutoGo;             /* Auto-scroll to event locations */
 
 void InitBudget(void);         /* Initialize budget system */
 void CollectTax(void);         /* Calculate and collect taxes */

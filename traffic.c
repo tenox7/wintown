@@ -279,9 +279,15 @@ static void SetTrafMem(void) {
                 /* Cap at maximum value */
                 if (z > 240) {
                     z = 240;
-                    TrafMaxX = SMapX;
-                    TrafMaxY = SMapY;
-                    /* Do not spawn a sprite here; road traffic animation already indicates congestion */
+                    TrafMaxX = SMapX << 4;
+                    TrafMaxY = SMapY << 4;
+                    {
+                        SimSprite *copter = GetSpriteByType(SPRITE_HELICOPTER);
+                        if (copter && copter->control == -1) {
+                            copter->dest_x = TrafMaxX;
+                            copter->dest_y = TrafMaxY;
+                        }
+                    }
                 }
 
                 TrfDensity[ty][tx] = (Byte)z;

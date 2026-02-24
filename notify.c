@@ -320,7 +320,9 @@ void doMessage(void) {
             case 37: strcpy(messageStr, "Population reached 50,000!"); break;
             case 38: strcpy(messageStr, "Population reached 100,000!"); break;
             case 39: strcpy(messageStr, "Population reached 500,000!"); break;
-            default: sprintf(messageStr, "Disaster %d", pictId); break;
+            case 41: strcpy(messageStr, "Heavy traffic reported!"); break;
+            case 42: strcpy(messageStr, "Flooding reported!"); break;
+            default: sprintf(messageStr, "Event %d", pictId); break;
         }
 
         if (MesX > 0 && MesY > 0) {
@@ -330,7 +332,15 @@ void doMessage(void) {
         }
 
         addGameLog("ALERT: %s", messageStr);
-        
+
+        /* AutoGo: auto-scroll to event location */
+        {
+            extern int AutoGo;
+            if (AutoGo && MesX > 0 && MesY > 0) {
+                CenterMapOnLocation(MesX, MesY);
+            }
+        }
+
         /* Show dialog for disasters only */
         if (pictId >= 20 && pictId <= 25) {
             Notification notif;
@@ -482,8 +492,10 @@ BOOL CALLBACK NotificationDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
     return FALSE;
 }
 
+extern void CenterMapOnTile(int tileX, int tileY);
+
 void CenterMapOnLocation(int x, int y) {
-    addGameLog("Centering map on (%d, %d)", x, y);
+    CenterMapOnTile(x, y);
 }
 
 /* Initialize notification system */
