@@ -36,6 +36,9 @@ static long deltaCityPop;           /* Population change */
 static QUAD CityAssValue;           /* City assessed value */
 static short AverageCityScore;      /* Average score over time */
 static int HospPop;                 /* Hospital population count */
+static int ChurchPop;               /* Church population count */
+int NeedHosp = 0;                   /* Hospital need: 1=need, 0=ok, -1=excess */
+int NeedChurch = 0;                 /* Church need: 1=need, 0=ok, -1=excess */
 static int NuclearPop;              /* Nuclear plant count */
 static int CoalPop;                 /* Coal plant count */
 
@@ -592,8 +595,10 @@ void CountSpecialTiles(void) {
     int x, y;
     short tile;
 
-    /* Reset counters */
+    int needThreshold;
+
     HospPop = 0;
+    ChurchPop = 0;
     CoalPop = 0;
     NuclearPop = 0;
 
@@ -607,6 +612,8 @@ void CountSpecialTiles(void) {
                 /* Check tile types */
                 if (tile == HOSPITAL) {
                     HospPop++;
+                } else if (tile == CHURCH) {
+                    ChurchPop++;
                 } else if (tile == POWERPLANT) {
                     CoalPop++;
                 } else if (tile == NUCLEAR) {
@@ -615,6 +622,15 @@ void CountSpecialTiles(void) {
             }
         }
     }
+
+    needThreshold = ResPop >> 8;
+    if (HospPop < needThreshold) NeedHosp = 1;
+    else if (HospPop > needThreshold) NeedHosp = -1;
+    else NeedHosp = 0;
+
+    if (ChurchPop < needThreshold) NeedChurch = 1;
+    else if (ChurchPop > needThreshold) NeedChurch = -1;
+    else NeedChurch = 0;
 }
 
 /* Get problem description by index */

@@ -237,17 +237,12 @@ void scenarioDisaster(void) {
         }
         break;
     case 3: /* Hamburg */
-        /* Drop fire bombs */
-        if (DisasterWait % 10 == 0) {
+        {
             disasterX = SimRandom(WORLD_X);
             disasterY = SimRandom(WORLD_Y);
             if (DisasterWait == 20) {
                 addGameLog("SCENARIO EVENT: Hamburg firebombing attack has begun!");
-                addGameLog("Multiple fires are breaking out across the city!");
             }
-            addGameLog("Explosion reported at %d,%d", disasterX, disasterY);
-            addDebugLog("Firebomb at coordinates %d,%d, %d bombs remaining", disasterX, disasterY,
-                        DisasterWait / 10);
             makeExplosion(disasterX, disasterY);
         }
         break;

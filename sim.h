@@ -331,6 +331,11 @@ extern Byte PoliceMapEffect[WORLD_Y/4][WORLD_X/4]; /* Police station effect (qua
 /* Commercial development score */
 extern short ComRate[WORLD_Y/4][WORLD_X/4];    /* Commercial score (quarter size) */
 
+/* Rate of growth memory (1/8th size) */
+#define ROGMEM_Y (WORLD_Y/8+1)
+#define ROGMEM_X (WORLD_X/8)
+extern short RateOGMem[ROGMEM_Y][ROGMEM_X];
+
 /* Historical data for graphs */
 extern short ResHis[HISTLEN/2];      /* Residential history */
 extern short ComHis[HISTLEN/2];      /* Commercial history */
@@ -431,6 +436,8 @@ extern short DisasterWait;  /* Countdown to next disaster - defined in scenarios
 extern int DisasterLevel;   /* Disaster level */
 extern int DisastersEnabled; /* Enable/disable disasters (0=disabled, 1=enabled) */
 extern int FloodCnt;        /* Flood countdown timer */
+extern int NeedHosp;        /* Hospital need: 1=need, 0=ok, -1=excess */
+extern int NeedChurch;      /* Church need: 1=need, 0=ok, -1=excess */
 
 /* Difficulty level multiplier tables - based on original WiNTown */
 extern float DifficultyTaxEfficiency[3];     /* Tax revenue multipliers [Easy, Medium, Hard] */
@@ -504,6 +511,7 @@ void DoPowerScan(void);
 int MakeTraffic(int zoneType);
 int FindPRoad(void);
 void DecTrafficMap(void);
+void DecROGMem(void);
 void CalcTrafficAverage(void);
 void RandomlySeedRand(void); /* Initialize random number generator */
 int SimRandom(int range);  /* Random number function used by traffic system */

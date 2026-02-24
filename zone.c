@@ -679,8 +679,7 @@ static void DoIndIn(int pop, int value) {
 
 /* Increment Rate of Growth map - matches original WiNTown */
 static void IncROG(int amount) {
-    /* RateOGMem[SMapX>>3][SMapY>>3] += amount<<2; */
-    /* Rate of Growth tracking not implemented yet */
+    RateOGMem[SMapY >> 3][SMapX >> 3] += (short)(amount << 2);
 }
 
 /* Handle residential zone decline */
@@ -943,7 +942,7 @@ static int EvalCom(int traf) {
     short Value;
     
     if (traf < 0) return (-3000);
-    Value = ComRate[SMapY >>3][SMapX >>3];
+    Value = ComRate[SMapY >>2][SMapX >>2];
     return (Value);
 }
 

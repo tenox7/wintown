@@ -299,7 +299,7 @@ static void DistIntMarket(void) {
             z = 64 - z;
 
             /* Set commercial rate */
-            ComRate[x][y] = z;
+            ComRate[y][x] = z;
         }
     }
 }

@@ -343,13 +343,44 @@ static void smoothRiverEdges(void) {
                     temp++;
                 }
                 
-                setMapTile(x, y, temp, 0, TILE_SET_REPLACE, "smoothRiverEdges");
+                setMapTile(x, y, temp, BULLBIT, TILE_SET_REPLACE, "smoothRiverEdges");
             }
         }
     }
 }
 
-/* Smooth forest edges */
+static void smoothWater(void) {
+    int x, y;
+    short tile, nb;
+
+    for (x = 0; x < WORLD_X; x++) {
+        for (y = 0; y < WORLD_Y; y++) {
+            tile = getMapTile(x, y);
+            if (tile < RIVER || tile > LASTRIVEDGE) continue;
+
+            if (x > 0) {
+                nb = getMapTile(x - 1, y);
+                if (nb < RIVER || nb > LASTRIVEDGE) goto wedge;
+            }
+            if (x < WORLD_X - 1) {
+                nb = getMapTile(x + 1, y);
+                if (nb < RIVER || nb > LASTRIVEDGE) goto wedge;
+            }
+            if (y > 0) {
+                nb = getMapTile(x, y - 1);
+                if (nb < RIVER || nb > LASTRIVEDGE) goto wedge;
+            }
+            if (y < WORLD_Y - 1) {
+                nb = getMapTile(x, y + 1);
+                if (nb < RIVER || nb > LASTRIVEDGE) goto wedge;
+            }
+            continue;
+        wedge:
+            setMapTile(x, y, REDGE, 0, TILE_SET_REPLACE, "smoothWater");
+        }
+    }
+}
+
 static void smoothForestEdges(void) {
     static int dx[4] = {-1, 0, 1, 0};
     static int dy[4] = {0, 1, 0, -1};
@@ -362,17 +393,17 @@ static void smoothForestEdges(void) {
         for (y = 0; y < WORLD_Y; y++) {
             tile = getMapTile(x, y);
             
-            if (tile == WOODS_TILE) {
+            if (tile >= TREEBASE && tile <= WOODS_TILE) {
                 bitIndex = 0;
-                
+
                 for (z = 0; z < 4; z++) {
                     bitIndex = bitIndex << 1;
                     nx = x + dx[z];
                     ny = y + dy[z];
-                    
+
                     if (nx >= 0 && nx < WORLD_X && ny >= 0 && ny < WORLD_Y) {
                         neighborTile = getMapTile(nx, ny);
-                        if (neighborTile == WOODS_TILE) {
+                        if (neighborTile >= TREEBASE && neighborTile <= WOODS_TILE) {
                             bitIndex++;
                         }
                     }
@@ -385,7 +416,7 @@ static void smoothForestEdges(void) {
                             temp = temp - 8;
                         }
                     }
-                    setMapTile(x, y, temp, 0, TILE_SET_REPLACE, "smoothForestEdges");
+                    setMapTile(x, y, temp, BULLBIT, TILE_SET_REPLACE, "smoothForestEdges");
                 }
             }
         }
@@ -439,10 +470,12 @@ int generateTerrainMap(MapGenParams *params) {
         generateForests(params->forestPercent);
     }
     
-    /* Smooth edges for natural appearance */
+    smoothWater();
+    smoothWater();
+    smoothWater();
     smoothRiverEdges();
     smoothForestEdges();
-    smoothForestEdges(); /* Run twice for better smoothing */
+    smoothForestEdges();
     
     addGameLog("Terrain generation completed successfully");
     return 1;

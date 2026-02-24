@@ -38,6 +38,9 @@ Byte PoliceMapEffect[WORLD_Y / 4][WORLD_X / 4];
 
 /* Commercial development score */
 short ComRate[WORLD_Y / 4][WORLD_X / 4];
+
+/* Rate of growth memory */
+short RateOGMem[ROGMEM_Y][ROGMEM_X];
 #pragma pack(pop)
 
 /* Runtime simulation state */
@@ -202,6 +205,7 @@ void DoSimInit(void) {
     memset(PoliceMap, 0, sizeof(PoliceMap));
     memset(PoliceMapEffect, 0, sizeof(PoliceMapEffect));
     memset(ComRate, 0, sizeof(ComRate));
+    memset(RateOGMem, 0, sizeof(RateOGMem));
 
     /* Initialize land values to make simulation more visually interesting */
     centerX = WORLD_X / 4;
@@ -460,8 +464,8 @@ void Simulate(int mod16) {
         break;
 
     case 10:
-        /* Process traffic decrease & other tile updates */
         DecTrafficMap();
+        DecROGMem();
 
         /* Calculate traffic average periodically */
         if ((Scycle % 4) == 0) {
@@ -992,6 +996,21 @@ void TakeCensus(void) {
     MoneyHis[HISTLEN / 2 - 1] = (short)(TotalFunds / 100);
 
     /* Note: MiscHis will be updated in the specific subsystem implementations */
+}
+
+void DecROGMem(void) {
+    int x, y;
+    short z;
+
+    for (y = 0; y < ROGMEM_Y; y++) {
+        for (x = 0; x < ROGMEM_X; x++) {
+            z = RateOGMem[y][x];
+            if (z == 0) continue;
+            if (z > 0) z--;
+            else z++;
+            RateOGMem[y][x] = z;
+        }
+    }
 }
 
 static void FireZone(int x, int y, int ch) {
