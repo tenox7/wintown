@@ -240,10 +240,10 @@ void makeMonster(void) {
 /* Create a flood disaster */
 void makeFlood(void) {
     extern int FloodCnt;
-    int x, y, xx, yy, tx, ty;
+    int x, y, xx, yy;
     int waterFound = 0;
     int attempts = 0;
-    int t, i, j;
+    int t;
     short tileValue;
 
     FloodCnt = 30;
@@ -275,41 +275,10 @@ void makeFlood(void) {
                         if (Map[yy][xx] == DIRT ||
                             ((Map[yy][xx] & BULLBIT) && (Map[yy][xx] & BURNBIT))) {
 
-                            /* Create initial flood tile */
-                            setMapTile(xx, yy, FLOOD, 0, TILE_SET_REPLACE, "makeFlood-initial");
+                            setMapTile(xx, yy, FLOOD + SimRandom(3), 0, TILE_SET_REPLACE, "makeFlood-initial");
                             waterFound = 1;
 
-                            /* Show enhanced notification dialog */
                             ShowNotificationAt(NOTIF_FLOODING, xx, yy);
-
-                            /* Start spreading the flood - limit to 100 iterations */
-                            for (i = 0; i < 100; i++) {
-                                /* Check adjacent tiles */
-                                for (j = 0; j < 4; j++) {
-                                    tx = xx + xDelta[j];
-                                    ty = yy + yDelta[j];
-
-                                    /* Only flood tiles that are in bounds and floodable */
-                                    if (BOUNDS_CHECK(tx, ty)) {
-                                        if (Map[ty][tx] == DIRT ||
-                                            ((Map[ty][tx] & BULLBIT) && (Map[ty][tx] & BURNBIT))) {
-                                            setMapTile(tx, ty, FLOOD, 0, TILE_SET_REPLACE, "makeFlood-adjacent");
-                                        }
-                                    }
-                                }
-
-                                /* Also try a random position near the original water source */
-                                tx = x + SimRandom(10) - 5;
-                                ty = y + SimRandom(10) - 5;
-
-                                if (BOUNDS_CHECK(tx, ty)) {
-                                    if (Map[ty][tx] == DIRT ||
-                                        ((Map[ty][tx] & BULLBIT) && (Map[ty][tx] & BURNBIT))) {
-                                        setMapTile(tx, ty, FLOOD, 0, TILE_SET_REPLACE, "makeFlood-random");
-                                    }
-                                }
-                            }
-
                             break;
                         }
                     }

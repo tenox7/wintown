@@ -261,13 +261,7 @@ void scenarioDisaster(void) {
             makeMonster();
         }
         break;
-    case 6: /* Detroit */
-        /* Detroit gets tornado to simulate urban decay */
-        if (DisasterWait <= 1) {
-            addGameLog("SCENARIO EVENT: Detroit tornado has touched down!");
-            addGameLog("Severe weather compounds the city's problems!");
-            makeTornado();
-        }
+    case 6: /* Detroit - no disaster in original */
         break;
     case 7: /* Boston */
         if (DisasterWait <= 1) {
@@ -381,13 +375,13 @@ DoScenarioScore(int scoreType) {
             }
             break;
             
-        case 7: /* Boston - restore land value average above 120 after meltdown */
-            if (LVAverage > 120) {
+        case 7: /* Boston - achieve city score above 500 after meltdown */
+            if (CityScore > 500) {
                 win = 1;
                 score = 500;
                 strcpy(message, "Remarkable! Boston has recovered from the nuclear disaster!");
             } else {
-                strcpy(message, "Land values remain low after the meltdown. Clean up radiation and rebuild!");
+                strcpy(message, "City score too low after the meltdown. Clean up radiation and rebuild!");
             }
             break;
             

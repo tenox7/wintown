@@ -1381,7 +1381,9 @@ int Check3x3Area(int x, int y, int *cost) {
             /* Check if tile is clear or can be bulldozed */
             if (tile != DIRT) {
                 /* Can be bulldozed at additional cost */
-                if (tile == RUBBLE || (tile >= TINYEXP && tile <= LASTTINYEXP)) {
+                if ((AutoBulldoze && tile >= TREEBASE && tile <= LASTRUBBLE) ||
+                    (tile >= RUBBLE && tile <= LASTRUBBLE) ||
+                    (tile >= TINYEXP && tile <= LASTTINYEXP)) {
                     clearCost += 1;
                 } else {
                     /* Not buildable */
@@ -1414,7 +1416,9 @@ int Check4x4Area(int x, int y, int *cost) {
             /* Check if tile is clear or can be bulldozed */
             if (tile != DIRT) {
                 /* Can be bulldozed at additional cost */
-                if (tile == RUBBLE || (tile >= TINYEXP && tile <= LASTTINYEXP)) {
+                if ((AutoBulldoze && tile >= TREEBASE && tile <= LASTRUBBLE) ||
+                    (tile >= RUBBLE && tile <= LASTRUBBLE) ||
+                    (tile >= TINYEXP && tile <= LASTTINYEXP)) {
                     clearCost += 1;
                 } else {
                     /* Not buildable */
@@ -1447,7 +1451,9 @@ int Check6x6Area(int x, int y, int *cost) {
             /* Check if tile is clear or can be bulldozed */
             if (tile != DIRT) {
                 /* Can be bulldozed at additional cost */
-                if (tile == RUBBLE || (tile >= TINYEXP && tile <= LASTTINYEXP)) {
+                if ((AutoBulldoze && tile >= TREEBASE && tile <= LASTRUBBLE) ||
+                    (tile >= RUBBLE && tile <= LASTRUBBLE) ||
+                    (tile >= TINYEXP && tile <= LASTTINYEXP)) {
                     clearCost += 1;
                 } else {
                     /* Not buildable */
