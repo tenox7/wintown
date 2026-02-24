@@ -8,9 +8,9 @@ Download from [Releases](https://github.com/tenox7/WinTown/releases). Note the .
 
 --------------
 
-**WIP: The game is playable but not fully finished and has [bugs](TODO.md).**
+The game is playable but has [bugs](TODO.md).**
 
-The game is under active development. PRs welcome!
+PRs welcome!
 
 Special thanks to Neozeed and Roytam for major fixes!
 
