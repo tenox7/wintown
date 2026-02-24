@@ -239,11 +239,14 @@ void makeMonster(void) {
 
 /* Create a flood disaster */
 void makeFlood(void) {
+    extern int FloodCnt;
     int x, y, xx, yy, tx, ty;
     int waterFound = 0;
     int attempts = 0;
     int t, i, j;
     short tileValue;
+
+    FloodCnt = 30;
 
     /* Log the flood disaster */
     addGameLog("DISASTER: Flooding has been reported!");

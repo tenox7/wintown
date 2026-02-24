@@ -387,6 +387,11 @@ extern float Delta;      /* Population change coefficient */
  * Modern systems are fast enough that this doesn't cause display flicker
  */
 
+/* Zone census counts */
+extern int ResZPop;
+extern int ComZPop;
+extern int IndZPop;
+
 /* Infrastructure counts */
 extern int PwrdZCnt;     /* Number of powered zones */
 extern int UnpwrdZCnt;   /* Number of unpowered zones */
@@ -425,6 +430,7 @@ extern short DisasterEvent; /* Current disaster type (0=none) - defined in scena
 extern short DisasterWait;  /* Countdown to next disaster - defined in scenarios.c */
 extern int DisasterLevel;   /* Disaster level */
 extern int DisastersEnabled; /* Enable/disable disasters (0=disabled, 1=enabled) */
+extern int FloodCnt;        /* Flood countdown timer */
 
 /* Difficulty level multiplier tables - based on original WiNTown */
 extern float DifficultyTaxEfficiency[3];     /* Tax revenue multipliers [Easy, Medium, Hard] */

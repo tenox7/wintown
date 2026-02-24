@@ -142,6 +142,7 @@ extern short DisasterEvent; /* Defined in scenarios.c */
 extern short DisasterWait;  /* Defined in scenarios.c */
 int DisasterLevel = 0;
 int DisastersEnabled = 1;  /* Enable/disable disasters (0=disabled, 1=enabled) */
+int FloodCnt = 0;         /* Flood countdown timer - floods spread while > 0, recede when 0 */
 int AutoBulldoze = 1;      /* Auto-bulldoze enabled flag */
 int SimTimerDelay = 200;   /* Timer delay in milliseconds based on speed */
 
@@ -408,9 +409,8 @@ void Simulate(int mod16) {
         break;
 
     case 9:
-        /* Process taxes, maintenance, city evaluation if needed */
-        /* ClearCensus is now done in case 1 before map scanning */
-        
+        if (FloodCnt > 0) FloodCnt--;
+
         /* Update CityPop only when population counters change */
         /* Population counters are now updated directly during map scanning */
         CityPop = CalculateCityPopulation(ResPop, ComPop, IndPop);
@@ -996,27 +996,205 @@ void TakeCensus(void) {
     /* Note: MiscHis will be updated in the specific subsystem implementations */
 }
 
-void MapScan(int x1, int x2, int y1, int y2) {
-    /* Scan a section of the map for zone processing - optimized version */
-    int x, y;
-    short fullTile;
+static void FireZone(int x, int y, int ch) {
+    int XYmax, dx, dy, tx, ty;
 
-    if (x1 < 0 || x2 > WORLD_X || y1 < 0 || y2 > WORLD_Y) {
+    ch = ch & LOMASK;
+    if (ch < PORTBASE)
+        XYmax = 2;
+    else if (ch == AIRPORT)
+        XYmax = 5;
+    else
+        XYmax = 4;
+
+    for (dx = -1; dx < XYmax; dx++) {
+        for (dy = -1; dy < XYmax; dy++) {
+            tx = x + dx;
+            ty = y + dy;
+            if (!BOUNDS_CHECK(tx, ty)) continue;
+            if ((Map[ty][tx] & LOMASK) >= ROADBASE)
+                Map[ty][tx] |= BULLBIT;
+        }
+    }
+}
+
+static void DoFireScan(void) {
+    static short DX[4] = {-1, 0, 1, 0};
+    static short DY[4] = {0, -1, 0, 1};
+    int z, Rate;
+    short Xtem, Ytem, c;
+
+    for (z = 0; z < 4; z++) {
+        if (!(rand() & 7)) {
+            Xtem = SMapX + DX[z];
+            Ytem = SMapY + DY[z];
+            if (BOUNDS_CHECK(Xtem, Ytem)) {
+                c = Map[Ytem][Xtem];
+                if (c & BURNBIT) {
+                    if (c & ZONEBIT)
+                        FireZone(Xtem, Ytem, c);
+                    Map[Ytem][Xtem] = FIRE + (rand() & 3) + ANIMBIT;
+                }
+            }
+        }
+    }
+
+    z = FireRate[SMapY >> 2][SMapX >> 2];
+    Rate = 10;
+    if (z) {
+        Rate = 3;
+        if (z > 20) Rate = 2;
+        if (z > 100) Rate = 1;
+    }
+    if (SimRandom(Rate + 1) == 0)
+        Map[SMapY][SMapX] = RUBBLE + (rand() & 3) + BULLBIT;
+}
+
+static void DoFloodScan(void) {
+    static short DX[4] = {0, 1, 0, -1};
+    static short DY[4] = {-1, 0, 1, 0};
+    int z;
+    short xx, yy, c, t;
+
+    if (FloodCnt) {
+        for (z = 0; z < 4; z++) {
+            if (!(rand() & 7)) {
+                xx = SMapX + DX[z];
+                yy = SMapY + DY[z];
+                if (BOUNDS_CHECK(xx, yy)) {
+                    c = Map[yy][xx];
+                    t = c & LOMASK;
+                    if ((c & BURNBIT) || (c == 0) ||
+                        ((t >= WOODS5) && (t < FLOOD))) {
+                        if (c & ZONEBIT)
+                            FireZone(xx, yy, c);
+                        Map[yy][xx] = FLOOD + SimRandom(3);
+                    }
+                }
+            }
+        }
+    } else {
+        if (!(rand() & 15))
+            Map[SMapY][SMapX] = DIRT;
+    }
+}
+
+static void DoRadTile(void) {
+    if (!(rand() & 4095))
+        Map[SMapY][SMapX] = DIRT;
+}
+
+static void DoRoadScan(void) {
+    short Density, tden, z;
+    static short DenTab[3] = {ROADBASE, LTRFBASE, HTRFBASE};
+
+    RoadTotal++;
+
+    if (RoadEffect < 30) {
+        if (!(rand() & 511)) {
+            if (!(CChr & CONDBIT)) {
+                if (RoadEffect < (rand() & 31)) {
+                    if (((CChr9 & 15) < 2) || ((CChr9 & 15) == 15))
+                        Map[SMapY][SMapX] = RIVER;
+                    else
+                        Map[SMapY][SMapX] = RUBBLE + (rand() & 3) + BULLBIT;
+                    return;
+                }
+            }
+        }
+    }
+
+    if (!(CChr & BURNBIT)) {
+        RoadTotal += 4;
         return;
     }
 
-    /* Process row by row for better cache locality */
+    if (CChr9 == HROADPOWER || CChr9 == VROADPOWER)
+        return;
+
+    if (CChr9 < LTRFBASE) tden = 0;
+    else if (CChr9 < HTRFBASE) tden = 1;
+    else {
+        RoadTotal++;
+        tden = 2;
+    }
+
+    Density = TrfDensity[SMapY >> 1][SMapX >> 1] >> 6;
+    if (Density > 1) Density--;
+    if (tden != Density) {
+        z = ((CChr9 - ROADBASE) & 15) + DenTab[Density];
+        z |= (CChr & (MASKBITS & ~ANIMBIT));
+        if (Density) z |= ANIMBIT;
+        Map[SMapY][SMapX] = z;
+    }
+}
+
+static void DoRailScan(void) {
+    RailTotal++;
+
+    if (RoadEffect < 30) {
+        if (!(rand() & 511)) {
+            if (!(CChr & CONDBIT)) {
+                if (RoadEffect < (rand() & 31)) {
+                    if (CChr9 < (RAILBASE + 2))
+                        Map[SMapY][SMapX] = RIVER;
+                    else
+                        Map[SMapY][SMapX] = RUBBLE + (rand() & 3) + BULLBIT;
+                    return;
+                }
+            }
+        }
+    }
+}
+
+void MapScan(int x1, int x2, int y1, int y2) {
+    int x, y;
+
+    if (x1 < 0 || x2 > WORLD_X || y1 < 0 || y2 > WORLD_Y)
+        return;
+
     for (y = y1; y < y2; y++) {
         for (x = x1; x < x2; x++) {
-            fullTile = Map[y][x]; /* Single memory access */
-            
-            /* Only process zones to reduce overhead */
-            if (fullTile & ZONEBIT) {
-                SMapX = x;
-                SMapY = y;
-                CChr = fullTile & LOMASK;
-                DoZone(x, y, CChr);
+            CChr = Map[y][x];
+            if (!CChr) continue;
+
+            CChr9 = CChr & LOMASK;
+            if (CChr9 < FLOOD) continue;
+
+            SMapX = x;
+            SMapY = y;
+
+            if (CChr9 < ROADBASE) {
+                if (CChr9 >= FIREBASE) {
+                    FirePop++;
+                    if (!(rand() & 3))
+                        DoFireScan();
+                    continue;
+                }
+                if (CChr9 < RADTILE)
+                    DoFloodScan();
+                else
+                    DoRadTile();
+                continue;
             }
+
+            if (CChr9 < POWERBASE) {
+                DoRoadScan();
+                continue;
+            }
+
+            if (CChr & ZONEBIT) {
+                DoZone(x, y, CChr9);
+                continue;
+            }
+
+            if (CChr9 >= RAILBASE && CChr9 < RESBASE) {
+                DoRailScan();
+                continue;
+            }
+
+            if (CChr9 >= SOMETINYEXP && CChr9 <= LASTTINYEXP)
+                Map[y][x] = RUBBLE + (rand() & 3) + BULLBIT;
         }
     }
 }

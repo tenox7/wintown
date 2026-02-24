@@ -27,11 +27,7 @@ extern void addDebugLog(const char *format, ...);
 #define COMBIT 0x0002
 #define INDBIT 0x0004
 
-/* Internal variables */
-static int RZPop; /* Residential zone population */
-static int CZPop; /* Commercial zone population */
-static int IZPop; /* Industrial zone population */
-/* ComRate is declared in simulation.h as quarter size */
+/* ComRate is declared in sim.h as quarter size */
 
 /* Population calculation cache - simple optimization */
 #define POP_CACHE_SIZE 512
@@ -197,9 +193,20 @@ static int DoFreePop(int x, int y);
 static void SetZPower(int x, int y);
 /* Using global calcResPop, calcComPop, calcIndPop from simulation.h */
 
-/* Random between 0 and range-1 */
 static int ZoneRandom(int range) {
     return rand() % range;
+}
+
+static short Rand16(void) {
+    return (short)(rand() & 0xFFFF);
+}
+
+static short Rand16Signed(void) {
+    return (short)(rand() & 0xFFFF);
+}
+
+static int Rand(int range) {
+    return rand() % (range + 1);
 }
 
 /* Main zone processing function - based on original WiNTown code */
@@ -299,22 +306,20 @@ static void DoHospChur(int x, int y) {
 
         /* Also increment trade zone count on some cycles */
         if (ZoneRandom(20) < 10) {
-            IZPop++;
+            IndZPop++;
         }
         return;
     }
 
     if (z == CHURCH) {
-        /* Add church population to census directly */
         if (zonePowered) {
             ResPop += 10;
         } else {
-            ResPop += 2; /* Even unpowered churches have some population */
+            ResPop += 2;
         }
 
-        /* Also increment residential zone count on some cycles */
         if (ZoneRandom(20) < 10) {
-            RZPop++;
+            ResZPop++;
         }
     }
 }
@@ -355,7 +360,7 @@ static void DoSPZ(int x, int y) {
 
         /* Additional random chance to increase commercial zone */
         if (ZoneRandom(5) == 1) {
-            CZPop += 1;
+            ComZPop += 1;
         }
         return;
     }
@@ -450,247 +455,152 @@ extern int FindPRoad(void);
 /* Process industrial zone */
 static void DoIndustrial(int x, int y) {
     short zone;
-    short tpop;
-    int pop;
+    int tpop, zscore, TrfGood;
     int zonePowered;
 
     zone = Map[y][x];
-    if (!(zone & ZONEBIT)) {
+    if (!(zone & ZONEBIT))
         return;
-    }
 
     SetZPower(x, y);
-    
-    /* Check if zone has power */
     zonePowered = (Map[y][x] & POWERBIT) != 0;
-    
-    /* Add smoke animation to powered industrial zones */
     SetSmoke(x, y);
 
-    tpop = IZPop;
+    IndZPop++;
+    tpop = calcIndPop(zone & LOMASK);
+    IndPop += tpop;
 
-    /* Get actual zone population - pass only the tile ID without flags */
-    pop = calcIndPop(zone & LOMASK);
-    
-    /* Debug check for negative or extreme values */
-    if (pop < 0 || pop > 1000) {
-        char debugMsg[256];
-        wsprintf(debugMsg, "WARNING: Industrial zone at (%d,%d) has unusual pop=%d from zone=%d (tile=%d)\n", 
-                 x, y, pop, zone, zone & LOMASK);
-        OutputDebugString(debugMsg);
-    }
-    
-    /* Make sure even empty zones contribute some population */
-    if (pop == 0 && zonePowered) {
-        pop = 1;  /* Minimum population for any powered industrial zone */
-    }
+    SMapX = x;
+    SMapY = y;
 
-    /* Add to total industrial population for the census */
-    IndPop += pop;
+    if (tpop > Rand(5))
+        TrfGood = MakeTraffic(2);
+    else
+        TrfGood = 1;
 
-    /* Generate traffic from industrial zones at a certain rate */
-    if (pop > 0 && (CityTime & 7) == 0) {
-        /* Industrial zones (2) try to generate traffic to residential zones */
-        SMapX = x;
-        SMapY = y;
-
-        /* If traffic generation successful, update population count */
-        if (MakeTraffic(2) > 0) {
-            IZPop += pop;
-        }
+    if (TrfGood == -1) {
+        DoIndOut(tpop, x, y);
+        return;
     }
 
-    /* Process industrial zone less often (every 8th cycle) */
-    if ((CityTime & 7) == 0) {
-        int value;
+    if (!(Rand16() & 7)) {
+        zscore = IValve + EvalInd(TrfGood);
+        if (!zonePowered) zscore = -500;
 
-        value = GetCRVal(x, y);
-
-        if (value < 0) {
-            DoIndOut(tpop, x, y);
+        if ((zscore > -350) &&
+            (((short)(zscore - 26380)) > Rand16Signed())) {
+            DoIndIn(tpop, Rand16() & 1);
             return;
         }
-
-        value = EvalInd(1);  /* Pass 1 for traffic good */
-
-        if (value > 0) {
-            DoIndIn(tpop, value);
-        } else if (value < 0) {
+        if ((zscore < 350) &&
+            (((short)(zscore + 26380)) < Rand16Signed()))
             DoIndOut(tpop, x, y);
-        }
-    }
-
-    if ((CityTime & 7) == 0) {
-        IZPop = 0;
     }
 }
 
-/* Process commercial zone */
 static void DoCommercial(int x, int y) {
     short zone;
-    short tpop;
-    int pop;
+    int tpop, zscore, locvalve, value, TrfGood;
     int zonePowered;
 
     zone = Map[y][x];
-    if (!(zone & ZONEBIT)) {
+    if (!(zone & ZONEBIT))
+        return;
+
+    SetZPower(x, y);
+    zonePowered = (Map[y][x] & POWERBIT) != 0;
+
+    ComZPop++;
+    tpop = calcComPop(zone & LOMASK);
+    ComPop += tpop;
+
+    SMapX = x;
+    SMapY = y;
+
+    if (tpop > Rand(5))
+        TrfGood = MakeTraffic(1);
+    else
+        TrfGood = 1;
+
+    if (TrfGood == -1) {
+        value = GetCRVal(x, y);
+        DoComOut(tpop, x, y);
         return;
     }
 
-    SetZPower(x, y);
-    
-    /* Check if zone has power */
-    zonePowered = (Map[y][x] & POWERBIT) != 0;
+    if (!(Rand16() & 7)) {
+        locvalve = EvalCom(TrfGood);
+        zscore = CValve + locvalve;
+        if (!zonePowered) zscore = -500;
 
-    tpop = CZPop;
-
-    /* Get actual zone population - pass only the tile ID without flags */
-    pop = calcComPop(zone & LOMASK);
-    
-    /* Make sure even empty zones contribute some population */
-    if (pop == 0 && zonePowered) {
-        pop = 1;  /* Minimum population for any powered commercial zone */
-    }
-
-    /* Add to total commercial population for the census */
-    ComPop += pop;
-
-    /* Generate traffic from commercial zones at a certain rate */
-    if (pop > 0 && (CityTime & 7) == 0) {
-        /* Commercial zones (1) try to generate traffic to industrial zones */
-        SMapX = x;
-        SMapY = y;
-
-        /* If traffic generation successful, update population count */
-        if (MakeTraffic(1) > 0) {
-            CZPop += pop;
-        }
-    }
-
-    /* Process commercial zone less often (every 8th cycle) */
-    if ((CityTime & 7) == 0) {
-        int value;
-
-        value = GetCRVal(x, y);
-
-        if (value < 0) {
-            DoComOut(tpop, x, y);
+        if (TrfGood &&
+            (zscore > -350) &&
+            (((short)(zscore - 26380)) > Rand16Signed())) {
+            value = GetCRVal(x, y);
+            DoComIn(tpop, value);
             return;
         }
-
-        value = EvalCom(1);  /* Pass 1 for traffic good */
-
-        if (value > 0) {
-            DoComIn(tpop, value);
-        } else if (value < 0) {
+        if ((zscore < 350) &&
+            (((short)(zscore + 26380)) < Rand16Signed())) {
+            value = GetCRVal(x, y);
             DoComOut(tpop, x, y);
         }
-    }
-
-    if ((CityTime & 7) == 0) {
-        CZPop = 0;
     }
 }
 
-/* Process residential zone */
 static void DoResidential(int x, int y) {
     short zone;
-    short tpop;
-    int pop;
-    int zonePowered;
     short tileId;
+    int tpop, zscore, locvalve, value, TrfGood;
+    int zonePowered;
 
     zone = Map[y][x];
-    if (!(zone & ZONEBIT)) {
+    if (!(zone & ZONEBIT))
+        return;
+
+    SetZPower(x, y);
+    zonePowered = (Map[y][x] & POWERBIT) != 0;
+
+    ResZPop++;
+    tileId = zone & LOMASK;
+
+    if (tileId == FREEZ)
+        tpop = DoFreePop(x, y);
+    else
+        tpop = calcResPop(tileId);
+
+    ResPop += tpop;
+
+    SMapX = x;
+    SMapY = y;
+
+    if (tpop > Rand(35))
+        TrfGood = MakeTraffic(0);
+    else
+        TrfGood = 1;
+
+    if (TrfGood == -1) {
+        value = GetCRVal(x, y);
+        DoResOut(tpop, value, x, y);
         return;
     }
 
-    /* Check if zone has power */
-    zonePowered = (Map[y][x] & POWERBIT) != 0;
+    if ((tileId == FREEZ) || (!(Rand16() & 7))) {
+        locvalve = EvalRes(TrfGood);
+        zscore = RValve + locvalve;
+        if (!zonePowered) zscore = -500;
 
-    tpop = RZPop;
-
-    /* Get actual zone population - pass only the tile ID without flags */
-    tileId = zone & LOMASK;
-    pop = calcResPop(tileId);
-    
-    /* Make sure even empty zones contribute some population */
-    if (pop == 0 && zonePowered) {
-        pop = 1;  /* Minimum population for any powered residential zone */
-    }
-
-    /* Add to total residential population for the census */
-    ResPop += pop;
-
-    /* Generate traffic from residential zones at a certain rate */
-    if (pop > 0 && (CityTime & 7) == 0) {
-        /* Residential zones (0) try to generate traffic to commercial or industrial zones */
-        SMapX = x;
-        SMapY = y;
-
-        /* If traffic generation successful, update population count */
-        if (MakeTraffic(0) > 0) {
-            RZPop += pop;
-        }
-    }
-
-    /* Process growth or decline based on power status */
-    if ((CityTime & 7) == 0) {
-        int value;
-        short oldTile;
-        short newTile;
-
-        /* Save old tile for debugging */
-        oldTile = Map[y][x] & LOMASK;
-
-        value = GetCRVal(x, y);
-
-        if (value < 0) {
-            DoResOut(tpop, value, x, y);
-            
-            /* Check if tile was corrupted */
-            newTile = Map[y][x] & LOMASK;
-            if (newTile >= ROADBASE && newTile <= LASTROAD && oldTile >= RESBASE && oldTile < COMBASE) {
-                addDebugLog("CORRUPTION: Res zone at %d,%d changed from %d to road %d (month=%d)", 
-                           x, y, oldTile, newTile, CityMonth);
-            }
+        if ((zscore > -350) &&
+            (((short)(zscore - 26380)) > Rand16Signed())) {
+            value = GetCRVal(x, y);
+            DoResIn(tpop, value);
             return;
         }
-
-        /* No growth in unpowered zones */
-        if (!zonePowered) {
-            DoResOut(tpop, -500, x, y);
-            
-            /* Check if tile was corrupted */
-            newTile = Map[y][x] & LOMASK;
-            if (newTile >= ROADBASE && newTile <= LASTROAD && oldTile >= RESBASE && oldTile < COMBASE) {
-                addDebugLog("CORRUPTION: Unpowered res zone at %d,%d changed from %d to road %d (month=%d)", 
-                           x, y, oldTile, newTile, CityMonth);
-            }
-            return;
-        }
-
-        value = EvalRes(1);  /* Pass 1 for traffic good */
-
-        if (value > 0) {
-            /* Use land value for zone placement, not evaluation score */
-            int landValue = GetCRVal(x, y);
-            DoResIn(tpop, landValue);
-        } else if (value < 0) {
+        if ((zscore < 350) &&
+            (((short)(zscore + 26380)) < Rand16Signed())) {
+            value = GetCRVal(x, y);
             DoResOut(tpop, value, x, y);
-            
-            /* Check if tile was corrupted */
-            newTile = Map[y][x] & LOMASK;
-            if (newTile >= ROADBASE && newTile <= LASTROAD && oldTile >= RESBASE && oldTile < COMBASE) {
-                addDebugLog("CORRUPTION: Declining res zone at %d,%d changed from %d to road %d (month=%d)", 
-                           x, y, oldTile, newTile, CityMonth);
-            }
         }
-    }
-
-    /* Reset population counter periodically */
-    if ((CityTime & 7) == 0) {
-        RZPop = 0;
     }
 }
 
