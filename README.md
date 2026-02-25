@@ -6,10 +6,6 @@ Backport of the classic [Micropolis](https://github.com/SimHacker/micropolis) (a
 
 Download from [Releases](https://github.com/tenox7/WinTown/releases). Note the .exe files are self contained. All assets are baked in as resources. You don't need to download any other files.
 
---------------
-
-The game is playable but has [bugs](TODO.md).**
-
 PRs welcome!
 
 Special thanks to Neozeed and Roytam for major fixes!
