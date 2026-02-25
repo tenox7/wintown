@@ -133,10 +133,10 @@ void DoTornadoSprite(SimSprite *sprite);
 void DoExplosion(SimSprite *sprite);
 
 /* Sprite generation functions */
-void GenerateTrains(void);
-void GenerateShips(void);
-void GenerateAircraft(void);
-void GenerateHelicopters(void);
+void GenerateTrain(int x, int y);
+void GenerateShip(void);
+void GeneratePlane(int x, int y);
+void GenerateCopter(int x, int y);
 
 /* Utility functions */
 int GetSpriteCount(void);

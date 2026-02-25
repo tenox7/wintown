@@ -484,11 +484,6 @@ void Simulate(int mod16) {
         if (!(Scycle % SpdPwr[spd]))
             DoPowerScan();
 
-        /* Generate transportation sprites */
-        GenerateTrains();
-        GenerateShips();
-        GenerateAircraft();
-        GenerateHelicopters();
 
         /* Check if population has gone to zero (but not initially) */
         if (TotalPop > 0 || LastTotalPop == 0) {
@@ -1262,6 +1257,7 @@ static void DoRoadScan(void) {
 
 static void DoRailScan(void) {
     RailTotal++;
+    GenerateTrain(SMapX, SMapY);
 
     if (RoadEffect < 30) {
         if (!(rand() & 511)) {

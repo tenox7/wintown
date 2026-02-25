@@ -435,7 +435,7 @@ void DoShipSprite(SimSprite *sprite) {
         return;
     }
 
-    if (!disastersDisabled) {
+    {
         int ok = 0;
         t = GetChar(sprite->x + sprite->x_hot, sprite->y + sprite->y_hot);
         for (z = 0; z < 8; z++) {
@@ -951,181 +951,61 @@ static void CheckCollisions(SimSprite *sprite) {
         ExplodeSprite(sprite);
 }
 
-/* Generate trains at rail stations when population threshold is met */
-void GenerateTrains(void) {
-    int x, y;
-    short tile;
-
-    if (TotalPop < 20) return;
-    if (SpriteCount >= MAX_SPRITES - 5) return;
-    if (GetSpriteByType(SPRITE_TRAIN)) return;
-    if (SimRandom(TRAIN_SPAWN_FREQUENCY) != 0) return;
-    
-    /* Find rail stations */
-    for (y = 0; y < WORLD_Y; y++) {
-        for (x = 0; x < WORLD_X; x++) {
-            tile = Map[y][x] & LOMASK;
-            
-            if (tile >= RAILBASE && tile <= LASTRAIL) {
-                if (SimRandom(FIRE_START_CHANCE) == 0) {
-                    /* Generate train here */
-                    NewSprite(SPRITE_TRAIN, (x << 4) + TRA_GROOVE_X, (y << 4) + TRA_GROOVE_Y);
-                    return;
-                }
-            }
-        }
+void GenerateTrain(int x, int y) {
+    if (TotalPop > 20 &&
+        GetSpriteByType(SPRITE_TRAIN) == NULL &&
+        !SimRandom(25)) {
+        NewSprite(SPRITE_TRAIN, (x << 4) + TRA_GROOVE_X, (y << 4) + TRA_GROOVE_Y);
     }
 }
 
-/* Generate ships at map edges where water meets the border */
-void GenerateShips(void) {
+static void MakeShipHere(int x, int y) {
+    NewSprite(SPRITE_SHIP, (x << 4) - (48 - 1), y << 4);
+}
+
+void GenerateShip(void) {
     int x, y;
 
-    if (SpriteCount >= MAX_SPRITES - 5) return;
-    if (PortPop <= 0) return;
-    if (GetSpriteByType(SPRITE_SHIP)) return;
-    if (SimRandom(SHIP_SPAWN_FREQUENCY) != 0) return;
-
+    if (!(SimRandom(3) == 0))
+        return;
     if (SimRandom(4) == 0) {
         for (x = 4; x < WORLD_X - 2; x++)
             if ((Map[0][x] & LOMASK) == CHANNEL) {
-                NewSprite(SPRITE_SHIP, (x << 4) - 47, 0);
+                MakeShipHere(x, 0);
                 return;
             }
     }
     if (SimRandom(4) == 0) {
         for (y = 1; y < WORLD_Y - 2; y++)
             if ((Map[y][0] & LOMASK) == CHANNEL) {
-                NewSprite(SPRITE_SHIP, -47, y << 4);
+                MakeShipHere(0, y);
                 return;
             }
     }
     if (SimRandom(4) == 0) {
         for (x = 4; x < WORLD_X - 2; x++)
             if ((Map[WORLD_Y - 1][x] & LOMASK) == CHANNEL) {
-                NewSprite(SPRITE_SHIP, (x << 4) - 47, (WORLD_Y - 1) << 4);
+                MakeShipHere(x, WORLD_Y - 1);
                 return;
             }
     }
     if (SimRandom(4) == 0) {
         for (y = 1; y < WORLD_Y - 2; y++)
             if ((Map[y][WORLD_X - 1] & LOMASK) == CHANNEL) {
-                NewSprite(SPRITE_SHIP, ((WORLD_X - 1) << 4) - 47, y << 4);
+                MakeShipHere(WORLD_X - 1, y);
                 return;
             }
     }
 }
 
-/* Generate aircraft at airports */
-void GenerateAircraft(void) {
-    int x, y;
-    short tile;
-    SimSprite *copter;
-
-    if (SpriteCount >= MAX_SPRITES - 5) return;
-    if (GetSpriteByType(SPRITE_AIRPLANE)) return;
-    if (SimRandom(AIRCRAFT_SPAWN_FREQUENCY) != 0) return;
-    
-    /* Find airports */
-    for (y = 0; y < WORLD_Y; y++) {
-        for (x = 0; x < WORLD_X; x++) {
-            tile = Map[y][x] & LOMASK;
-            
-            if (tile >= AIRPORTBASE && tile <= AIRPORT) {
-                if (SimRandom(MONSTER_SPAWN_CHANCE) == 0) {
-                    /* Generate aircraft - favor airplanes at airports */
-                    if (SimRandom(TRAIN_STOP_CHANCE) < 3) {
-                        NewSprite(SPRITE_AIRPLANE, x << 4, y << 4);
-                    } else {
-                        copter = NewSprite(SPRITE_HELICOPTER, x << 4, y << 4);
-                        if (copter) {
-                            copter->control = -1;
-                            copter->count = 150;
-                            copter->dest_x = SimRandom(WORLD_X) << 4;
-                            copter->dest_y = SimRandom(WORLD_Y) << 4;
-                        }
-                    }
-                    return;
-                }
-            }
-        }
-    }
+void GeneratePlane(int x, int y) {
+    if (GetSpriteByType(SPRITE_AIRPLANE) != NULL) return;
+    NewSprite(SPRITE_AIRPLANE, (x << 4) + 48, (y << 4) + 12);
 }
 
-/* Generate helicopters for traffic monitoring and disasters */
-void GenerateHelicopters(void) {
-    int x, y;
-    SimSprite *copter;
-    
-    if (SpriteCount >= MAX_SPRITES - 5) {
-        return;
-    }
-    
-    /* Much more frequent helicopter spawning for better gameplay */
-    
-    /* 1. Traffic monitoring helicopters */
-    if (TrafficAverage > HIGH_TRAFFIC_THRESHOLD && SimRandom(TRAFFIC_HELICOPTER_CHANCE) == 0) {
-        /* Spawn near high traffic areas */
-        x = (SimRandom(WORLD_X - HELICOPTER_SPAWN_MARGIN) + (HELICOPTER_SPAWN_MARGIN / 2)) << 4;
-        y = (SimRandom(WORLD_Y - HELICOPTER_SPAWN_MARGIN) + (HELICOPTER_SPAWN_MARGIN / 2)) << 4;
-        
-        copter = NewSprite(SPRITE_HELICOPTER, x, y);
-        if (copter) {
-            copter->control = -1;
-            copter->count = 150;
-            copter->dest_x = SimRandom(WORLD_X) << 4;
-            copter->dest_y = SimRandom(WORLD_Y) << 4;
-            return;
-        }
-    }
-    
-    /* 2. Crime monitoring helicopters */
-    if (CrimeAverage > HIGH_CRIME_THRESHOLD && SimRandom(CRIME_HELICOPTER_CHANCE) == 0) {
-        /* Spawn near center of city */
-        x = (WORLD_X / 2 + SimRandom(HELICOPTER_SPAWN_MARGIN) - (HELICOPTER_SPAWN_MARGIN / 2)) << 4;
-        y = (WORLD_Y / 2 + SimRandom(HELICOPTER_SPAWN_MARGIN) - (HELICOPTER_SPAWN_MARGIN / 2)) << 4;
-        
-        copter = NewSprite(SPRITE_HELICOPTER, x, y);
-        if (copter) {
-            copter->control = -1;
-            copter->count = 150;
-            copter->dest_x = SimRandom(WORLD_X) << 4;
-            copter->dest_y = SimRandom(WORLD_Y) << 4;
-            return;
-        }
-    }
-    
-    /* 3. Random patrol helicopters in medium cities */
-    if (TotalPop > LARGE_POPULATION_THRESHOLD && SimRandom(AIRPLANE_SPAWN_CHANCE) == 0) {
-        /* Spawn anywhere in the city */
-        x = SimRandom(WORLD_X) << 4;
-        y = SimRandom(WORLD_Y) << 4;
-        
-        copter = NewSprite(SPRITE_HELICOPTER, x, y);
-        if (copter) {
-            copter->control = -1;
-            copter->count = 150;
-            copter->dest_x = SimRandom(WORLD_X) << 4;
-            copter->dest_y = SimRandom(WORLD_Y) << 4;
-            return;
-        }
-    }
-    
-    /* 4. Guaranteed periodic helicopter for any city with roads */
-    if (RoadTotal > MIN_ROADS_FOR_BUS && SimRandom(BUS_SPAWN_CHANCE) == 0) {
-        /* Spawn a helicopter somewhere over the city */
-        x = (SimRandom(WORLD_X - 10) + 5) << 4;
-        y = (SimRandom(WORLD_Y - 10) + 5) << 4;
-        
-        copter = NewSprite(SPRITE_HELICOPTER, x, y);
-        if (copter) {
-            copter->control = -1;
-            copter->count = 150;
-            copter->dest_x = SimRandom(WORLD_X) << 4;
-            copter->dest_y = SimRandom(WORLD_Y) << 4;
-            return;
-        }
-    }
+void GenerateCopter(int x, int y) {
+    if (GetSpriteByType(SPRITE_HELICOPTER) != NULL) return;
+    NewSprite(SPRITE_HELICOPTER, x << 4, (y << 4) + 30);
 }
 
 /* Placeholder sound function - to be implemented with Windows audio */

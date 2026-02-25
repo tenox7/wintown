@@ -423,7 +423,9 @@ static void DoSPZ(int x, int y) {
         }
         if (Map[y][x] & POWERBIT) {
             if (!SimRandom(5)) {
-                GenerateAircraft();
+                GeneratePlane(x, y);
+            } else if (!SimRandom(12)) {
+                GenerateCopter(x, y);
             }
         }
         return;
@@ -433,7 +435,7 @@ static void DoSPZ(int x, int y) {
         if (!(CityTime & 15))
             RepairZone(x, y, PORT, 4);
         if ((Map[y][x] & POWERBIT) && GetSpriteByType(SPRITE_SHIP) == NULL) {
-            GenerateShips();
+            GenerateShip();
         }
         return;
     }

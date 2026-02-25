@@ -2587,19 +2587,31 @@ LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
         case IDM_SPAWN_SHIP:
             {
-                SimSprite *sprite;
-                int x, y;
-                
-                /* Spawn ship at center of visible area */
-                x = (xOffset + (cxClient / 2)) & ~15;
-                y = (yOffset + (cyClient / 2)) & ~15;
-                
-                sprite = NewSprite(SPRITE_SHIP, x, y);
-                if (sprite) {
-                    addGameLog("Ship spawned");
-                } else {
-                    addGameLog("Could not spawn ship - too many sprites");
+                SimSprite *sprite = NULL;
+                int cx, cy, tx, ty, r, dx, dy;
+                short tile;
+
+                cx = (xOffset + (cxClient / 2)) >> 4;
+                cy = (yOffset + (cyClient / 2)) >> 4;
+
+                for (r = 0; r < 40 && !sprite; r++) {
+                    for (dy = -r; dy <= r && !sprite; dy++) {
+                        for (dx = -r; dx <= r && !sprite; dx++) {
+                            if (abs(dx) != r && abs(dy) != r) continue;
+                            tx = cx + dx;
+                            ty = cy + dy;
+                            if (tx < 0 || tx >= WORLD_X || ty < 0 || ty >= WORLD_Y) continue;
+                            tile = Map[ty][tx] & LOMASK;
+                            if (tile == CHANNEL || tile == RIVER) {
+                                sprite = NewSprite(SPRITE_SHIP, (tx << 4) - (48 - 1), ty << 4);
+                            }
+                        }
+                    }
                 }
+                if (sprite)
+                    addGameLog("Ship spawned");
+                else
+                    addGameLog("No water found to spawn ship");
             }
             return 0;
 
