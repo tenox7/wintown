@@ -1166,15 +1166,15 @@ LRESULT CALLBACK infoWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
         y += 20;
 
         /* Draw detailed population breakdown */
-        wsprintf(buffer, "Residential: %d", ResPop);
+        wsprintf(buffer, "Residential: %d", MiscHis[2]);
         TextOut(hdc, 10, y, buffer, lstrlen(buffer));
         y += 20;
 
-        wsprintf(buffer, "Commercial: %d", ComPop);
+        wsprintf(buffer, "Commercial: %d", MiscHis[3]);
         TextOut(hdc, 10, y, buffer, lstrlen(buffer));
         y += 20;
 
-        wsprintf(buffer, "Industrial: %d", IndPop);
+        wsprintf(buffer, "Industrial: %d", MiscHis[4]);
         TextOut(hdc, 10, y, buffer, lstrlen(buffer));
         y += 20;
 
