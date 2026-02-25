@@ -398,8 +398,8 @@ static void DoSPZ(int x, int y) {
         if (Map[y][x] & POWERBIT) {
             if (!((CityTime + x + y) & 31)) {
                 DrawStadium(x, y, FULLSTADIUM);
-                Map[y][x + 1] = FOOTBALLGAME1 + ANIMBIT;
-                Map[y + 1][x + 1] = FOOTBALLGAME2 + ANIMBIT;
+                Map[y][x + 1] = FOOTBALLGAME1 + ANIMBIT + CONDBIT;
+                Map[y + 1][x + 1] = FOOTBALLGAME2 + ANIMBIT + CONDBIT;
             }
         }
         return;
@@ -691,14 +691,14 @@ static void DoResOut(int pop, int value, int x, int y) {
     if (pop == 16) {
         IncROG(-8);
         /* Center becomes FREEZ with zone + bulldoze bits */
-        setMapTile(x, y, FREEZ, ZONEBIT | BULLBIT, TILE_SET_REPLACE, "DoResOut-freez-center");
+        setMapTile(x, y, FREEZ, ZONEBIT | BULLBIT | CONDBIT, TILE_SET_REPLACE, "DoResOut-freez-center");
 
         /* Ring becomes low houses varying by land value */
         for (locX = x - 1; locX <= x + 1; locX++) {
             for (locY = y - 1; locY <= y + 1; locY++) {
                 if (locX >= 0 && locX < WORLD_X && locY >= 0 && locY < WORLD_Y) {
                     if ((Map[locY][locX] & LOMASK) != FREEZ) {
-                        setMapTile(locX, locY, (LHTHR + value + ZoneRandom(2)), BULLBIT, TILE_SET_REPLACE, "DoResOut-freez-ring");
+                        setMapTile(locX, locY, (LHTHR + value + ZoneRandom(2)), BNCNBIT, TILE_SET_REPLACE, "DoResOut-freez-ring");
                     }
                 }
             }
@@ -714,7 +714,7 @@ static void DoResOut(int pop, int value, int x, int y) {
             if (locX >= 0 && locX < WORLD_X && locY >= 0 && locY < WORLD_Y) {
                 loc = Map[locY][locX] & LOMASK;
                 if ((loc >= LHTHR) && (loc <= HHTHR)) {
-                    setMapTile(locX, locY, (FREEZ - 4 + brdr[z]), BULLBIT, TILE_SET_REPLACE, "DoResOut-shrink");
+                    setMapTile(locX, locY, (FREEZ - 4 + brdr[z]), BNCNBIT, TILE_SET_REPLACE, "DoResOut-shrink");
                     return;
                 }
             }

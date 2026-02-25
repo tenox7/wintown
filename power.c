@@ -219,25 +219,15 @@ void DoPowerScan(void) {
     int x, y;
     short ADir, ConNum, Dir;
 
-#ifdef DEBUG
-    addDebugLog("DoPowerScan: Starting power distribution scan");
-#endif
-
-    /* Count power plants */
     CountPowerPlants();
 
-    /* Calculate total power capacity */
     MaxPower = (CoalPop * 700L) + (NuclearPop * 2000L);
     NumPower = 0;
 
-    /* Clear the power map first using unified system - cache-friendly row-by-row */
-    for (y = 0; y < WORLD_Y; y++) {
-        for (x = 0; x < WORLD_X; x++) {
-            SetPowerStatusOnly(x, y, 0); /* Clear power status without updating counts */
-        }
-    }
-    
-    /* Reset zone counts after clearing */
+    for (y = 0; y < WORLD_Y; y++)
+        for (x = 0; x < WORLD_X; x++)
+            SetPowerStatusOnly(x, y, 0);
+
     PwrdZCnt = 0;
     UnpwrdZCnt = 0;
 
@@ -293,6 +283,5 @@ void DoPowerScan(void) {
         } while (ConNum); /* Continue as long as we have conductive paths */
     }
 
-    /* Update power zone counts using unified system */
     CountPowerZones();
 }

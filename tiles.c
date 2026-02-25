@@ -180,17 +180,6 @@ int setMapTile(int x, int y, int tile, int flags, int operation, char* caller) {
     }
 #endif
     
-    /* Optional diagnostic: detect unexpected road->power conversions */
-    {
-        int oldBase = oldTile & LOMASK;
-        int newBase = newTile & LOMASK;
-        if (oldBase >= ROADBASE && oldBase <= LASTROAD && newBase >= POWERBASE && newBase <= LASTPOWER) {
-            /* Log suspicious conversion for debugging */
-            extern void addGameLog(const char *format, ...);
-            addGameLog("WARN: Road->Power at %d,%d: %d -> %d by %s", x, y, oldBase, newBase, caller ? caller : "unknown");
-        }
-    }
-
     /* Make the change */
     Map[y][x] = newTile;
     tileChangeCount++;
