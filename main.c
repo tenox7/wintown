@@ -5161,8 +5161,8 @@ void drawCity(HDC hdc) {
         for (i = 0; i < MAX_SPRITES; i++) {
             SimSprite *sprite = GetSprite(i);
             if (sprite != NULL) {
-                int spriteScreenX = sprite->x - xOffset;
-                int spriteScreenY = sprite->y - yOffset;
+                int spriteScreenX = sprite->x - xOffset + sprite->x_offset;
+                int spriteScreenY = sprite->y - yOffset + sprite->y_offset;
                 
                 /* Check if sprite is visible on screen */
                 if (spriteScreenX >= -32 && spriteScreenX < cxClient &&
@@ -5266,7 +5266,7 @@ void drawCity(HDC hdc) {
                             }
                             
                             /* Draw sprite with transparency (magenta is transparent) */
-                            DrawTransparentBitmap(hdc, spriteScreenX - sprite->width / 2, spriteScreenY - sprite->height / 2,
+                            DrawTransparentBitmap(hdc, spriteScreenX, spriteScreenY,
                                                 sprite->width, sprite->height, hdcSprites, 0, 0, RGB(255, 0, 255));
                             
                             /* Restore palette and DC */

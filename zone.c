@@ -327,8 +327,9 @@ static void DrawStadium(int cx, int cy, int base) {
     int z;
     z = base - 5;
     for (iy = cy - 1; iy < cy + 3; iy++)
-        for (ix = cx - 1; ix < cx + 3; ix++)
-            Map[iy][ix] = (z++) | BURNBIT | CONDBIT;
+        for (ix = cx - 1; ix < cx + 3; ix++) {
+            Map[iy][ix] = (z++) | BURNBIT | CONDBIT | (Map[iy][ix] & POWERBIT);
+        }
     Map[cy][cx] |= ZONEBIT | POWERBIT;
 }
 
@@ -691,14 +692,14 @@ static void DoResOut(int pop, int value, int x, int y) {
     if (pop == 16) {
         IncROG(-8);
         /* Center becomes FREEZ with zone + bulldoze bits */
-        setMapTile(x, y, FREEZ, ZONEBIT | BULLBIT | CONDBIT, TILE_SET_REPLACE, "DoResOut-freez-center");
+        setMapTile(x, y, FREEZ, ZONEBIT | BULLBIT | CONDBIT, TILE_SET_PRESERVE, "DoResOut-freez-center");
 
         /* Ring becomes low houses varying by land value */
         for (locX = x - 1; locX <= x + 1; locX++) {
             for (locY = y - 1; locY <= y + 1; locY++) {
                 if (locX >= 0 && locX < WORLD_X && locY >= 0 && locY < WORLD_Y) {
                     if ((Map[locY][locX] & LOMASK) != FREEZ) {
-                        setMapTile(locX, locY, (LHTHR + value + ZoneRandom(2)), BNCNBIT, TILE_SET_REPLACE, "DoResOut-freez-ring");
+                        setMapTile(locX, locY, (LHTHR + value + ZoneRandom(2)), BNCNBIT, TILE_SET_PRESERVE, "DoResOut-freez-ring");
                     }
                 }
             }
@@ -714,7 +715,7 @@ static void DoResOut(int pop, int value, int x, int y) {
             if (locX >= 0 && locX < WORLD_X && locY >= 0 && locY < WORLD_Y) {
                 loc = Map[locY][locX] & LOMASK;
                 if ((loc >= LHTHR) && (loc <= HHTHR)) {
-                    setMapTile(locX, locY, (FREEZ - 4 + brdr[z]), BNCNBIT, TILE_SET_REPLACE, "DoResOut-shrink");
+                    setMapTile(locX, locY, (FREEZ - 4 + brdr[z]), BNCNBIT, TILE_SET_PRESERVE, "DoResOut-shrink");
                     return;
                 }
             }
@@ -774,7 +775,7 @@ static void BuildHouse(int x, int y, int value) {
     xx = x + ZeX[BestLoc];
     yy = y + ZeY[BestLoc];
     if (!BOUNDS_CHECK(xx, yy)) return;
-    Map[yy][xx] = HOUSE + BNCNBIT + BULLBIT + Rand(2) + (value * 3);
+    Map[yy][xx] = HOUSE + BNCNBIT + BULLBIT + Rand(2) + (value * 3) + (Map[yy][xx] & POWERBIT);
 }
 
 /* Place a residential zone */
@@ -854,7 +855,7 @@ static int ZonePlop(int xpos, int ypos, int base) {
             x = xpos + dx;
             y = ypos + dy;
             if (BOUNDS_CHECK(x, y))
-                Map[y][x] = (base + index) | BNCNBIT;
+                Map[y][x] = (base + index) | BNCNBIT | (Map[y][x] & POWERBIT);
             index++;
         }
     }
@@ -945,7 +946,7 @@ static void RepairZone(int cx, int cy, int zCent, int zSize) {
             if (ThCh & ANIMBIT) continue;
             ThCh = ThCh & LOMASK;
             if ((ThCh < RUBBLE) || (ThCh >= ROADBASE))
-                Map[yy][xx] = (short)(zCent - 3 - zSize + cnt + CONDBIT + BURNBIT);
+                Map[yy][xx] = (short)(zCent - 3 - zSize + cnt + CONDBIT + BURNBIT + (Map[yy][xx] & POWERBIT));
         }
     }
 }

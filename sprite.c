@@ -136,8 +136,8 @@ SimSprite* NewSprite(int type, int x, int y) {
         case SPRITE_TRAIN:
             sprite->width = 32;
             sprite->height = 32;
-            sprite->x_offset = TRA_GROOVE_X;
-            sprite->y_offset = TRA_GROOVE_Y;
+            sprite->x_offset = 32;
+            sprite->y_offset = -16;
             sprite->x_hot = 40;
             sprite->y_hot = -8;
             sprite->frame = 1;
@@ -197,8 +197,8 @@ SimSprite* NewSprite(int type, int x, int y) {
         case SPRITE_BUS:
             sprite->width = 32;
             sprite->height = 32;
-            sprite->x_offset = BUS_GROOVE_X;
-            sprite->y_offset = BUS_GROOVE_Y;
+            sprite->x_offset = 30;
+            sprite->y_offset = -18;
             sprite->x_hot = 40;
             sprite->y_hot = -8;
             sprite->frame = 1;
@@ -207,8 +207,8 @@ SimSprite* NewSprite(int type, int x, int y) {
         case SPRITE_POLICE:
             sprite->width = 32;
             sprite->height = 32;
-            sprite->x_offset = BUS_GROOVE_X;
-            sprite->y_offset = BUS_GROOVE_Y;
+            sprite->x_offset = 30;
+            sprite->y_offset = -18;
             sprite->x_hot = 40;
             sprite->y_hot = -8;
             sprite->frame = 1;
@@ -969,7 +969,7 @@ void GenerateTrains(void) {
             if (tile >= RAILBASE && tile <= LASTRAIL) {
                 if (SimRandom(FIRE_START_CHANCE) == 0) {
                     /* Generate train here */
-                    NewSprite(SPRITE_TRAIN, x << 4, y << 4);
+                    NewSprite(SPRITE_TRAIN, (x << 4) + TRA_GROOVE_X, (y << 4) + TRA_GROOVE_Y);
                     return;
                 }
             }
