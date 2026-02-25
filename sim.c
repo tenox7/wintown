@@ -34,15 +34,15 @@ Byte PollutionMem[WORLD_Y / 2][WORLD_X / 2];
 Byte LandValueMem[WORLD_Y / 2][WORLD_X / 2];
 Byte CrimeMem[WORLD_Y / 2][WORLD_X / 2];
 
-/* Quarter-sized maps for effects */
+/* Quarter-sized map */
 Byte TerrainMem[WORLD_Y / 4][WORLD_X / 4];
-Byte FireStMap[WORLD_Y / 4][WORLD_X / 4];
-Byte FireRate[WORLD_Y / 4][WORLD_X / 4];
-Byte PoliceMap[WORLD_Y / 4][WORLD_X / 4];
-Byte PoliceMapEffect[WORLD_Y / 4][WORLD_X / 4];
 
-/* Commercial development score */
-short ComRate[WORLD_Y / 4][WORLD_X / 4];
+/* Eighth-sized maps (SmY x SmX) - matches original resolution */
+short FireStMap[SmY][SmX];
+short FireRate[SmY][SmX];
+short PoliceMap[SmY][SmX];
+short PoliceMapEffect[SmY][SmX];
+short ComRate[SmY][SmX];
 
 /* Rate of growth memory */
 short RateOGMem[ROGMEM_Y][ROGMEM_X];
@@ -57,6 +57,7 @@ int CityYear = 1900;
 int CityMonth = 0;
 QUAD TotalFunds = 5000;
 int TaxRate = 7;      /* City tax rate 0-20% */
+int DoInitialEval = 0;
 int SkipCensusReset = 0;  /* Flag to skip census reset after loading a scenario */
 int DebugCensusReset = 0; /* Debug counter for tracking census resets */
 int PrevResPop = 0;       /* Debug tracker for last residential population value */
@@ -297,7 +298,8 @@ void DoSimInit(void) {
     /* Generate a random disaster wait period */
     DisasterWait = SimRandom(51) + 49;
 
-    /* Force an initial census to populate values */
+    DoInitialEval = 1;
+
     TakeCensus();
 }
 
@@ -353,42 +355,41 @@ void SimFrame(void) {
 }
 
 void Simulate(int mod16) {
-    /* Main simulation logic */
+    static short SpdPwr[4] = { 1,  2,  4,  5 };
+    static short SpdPtl[4] = { 1,  2,  7, 17 };
+    static short SpdCri[4] = { 1,  1,  8, 18 };
+    static short SpdPop[4] = { 1,  1,  9, 19 };
+    static short SpdFir[4] = { 1,  1, 10, 20 };
+    short spd;
 
-    /* Perform different actions based on the cycle position (mod 16) */
+    spd = (short)SimSpeed;
+    if (spd > 3) spd = 3;
+
     switch (mod16) {
     case 0:
-        /* Increment simulation cycle counter as in original */
-        if (++Scycle > 1023) {
+        if (++Scycle > 1023)
             Scycle = 0;
+        if (DoInitialEval) {
+            DoInitialEval = 0;
+            CityEvaluation();
         }
-        
         DoTimeStuff();
         AvCityTax += TaxRate;
-
         if (!(Scycle & 1))
             SetValves();
+        ClearCensus();
 
         if (ValveFlag) {
             ValveFlag = 0;
             UpdateToolbar();
         }
 
-        /* Power scan moved to case 11 to avoid duplicate calls */
-
-        /* Process tile animations */
         AnimateTiles();
-
-        /* Original WiNTown message system */
         SendMessages();
         doMessage();
         break;
 
     case 1:
-        /* Clear census before starting a new scan cycle */
-        ClearCensus();
-        /* FALLTHROUGH to start map scanning */
-
     case 2:
 #ifdef DEBUG
         /* Debug: Map scan segment tracking */
@@ -422,23 +423,10 @@ void Simulate(int mod16) {
         /* Update police coverage display map immediately after stations are scanned */
         /* This ensures the minimap shows current coverage without waiting for CrimeScan */
         {
-            int x, y, totalCoverage = 0, maxCoverage = 0;
-            for (x = 0; x < WORLD_X / 4; x++) {
-                for (y = 0; y < WORLD_Y / 4; y++) {
+            int x, y;
+            for (x = 0; x < SmX; x++)
+                for (y = 0; y < SmY; y++)
                     PoliceMapEffect[y][x] = PoliceMap[y][x];
-                    if (PoliceMap[y][x] > 0) {
-                        totalCoverage += PoliceMap[y][x];
-                        if (PoliceMap[y][x] > maxCoverage) {
-                            maxCoverage = PoliceMap[y][x];
-                        }
-                    }
-                }
-            }
-            if (totalCoverage > 0) {
-                addDebugLog("POLICE MAP: Total=%d Max=%d Stations=%d", totalCoverage, maxCoverage, PolicePop);
-            } else if (PolicePop > 0) {
-                addDebugLog("POLICE MAP: No coverage despite %d stations - PoliceEffect=%d", PolicePop, PoliceEffect);
-            }
         }
 
         /* Update charts every case 9 (every 16 cycles) */
@@ -493,8 +481,8 @@ void Simulate(int mod16) {
         break;
 
     case 11:
-        /* Process power grid updates */
-        DoPowerScan();
+        if (!(Scycle % SpdPwr[spd]))
+            DoPowerScan();
 
         /* Generate transportation sprites */
         GenerateTrains();
@@ -536,11 +524,8 @@ void Simulate(int mod16) {
         break;
 
     case 12:
-        /* Process pollution spread (at a reduced rate) */
-        if ((Scycle % 16) == 12) {
-            PTLScan(); /* Do pollution, terrain, and land value */
-
-            /* Log pollution and land value */
+        if (!(Scycle % SpdPtl[spd])) {
+            PTLScan();
             addDebugLog("Pollution average: %d", PollutionAverage);
             addDebugLog("Land value average: %d", LVAverage);
         }
@@ -556,29 +541,20 @@ void Simulate(int mod16) {
         break;
 
     case 13:
-        /* Process crime spread (at a reduced rate) */
-        if ((Scycle % 4) == 1) {
-            CrimeScan(); /* Do crime map analysis */
-
-            /* Log crime level */
-            if (CrimeAverage > 100) {
+        if (!(Scycle % SpdCri[spd])) {
+            CrimeScan();
+            if (CrimeAverage > 100)
                 addGameLog("WARNING: Crime level is very high (%d)", CrimeAverage);
-            } else if (CrimeAverage > 50) {
-                addDebugLog("Crime average: %d (Moderate)", CrimeAverage);
-            }
         }
         break;
 
     case 14:
-        /* Process population density (at a reduced rate) */
-        if ((Scycle % 16) == 14) {
-            PopDenScan();   /* Do population density scan */
-            FireAnalysis(); /* Update fire protection effect */
-        }
+        if (!(Scycle % SpdPop[spd]))
+            PopDenScan();
         break;
 
     case 15:
-        if (!(Scycle % 2))
+        if (!(Scycle % SpdFir[spd]))
             FireAnalysis();
         DoDisasters();
 
@@ -834,15 +810,8 @@ void ClearCensus(void) {
     HospPop = 0;
     ChurchPop = 0;
 
-    {
-        int cx, cy;
-        for (cy = 0; cy < WORLD_Y / 4; cy++) {
-            for (cx = 0; cx < WORLD_X / 4; cx++) {
-                FireStMap[cy][cx] = 0;
-                PoliceMap[cy][cx] = 0;
-            }
-        }
-    }
+    memset(FireStMap, 0, sizeof(FireStMap));
+    memset(PoliceMap, 0, sizeof(PoliceMap));
 
     ResetCensusCounters();
 
@@ -1092,7 +1061,7 @@ static void DoFireScan(void) {
         }
     }
 
-    z = FireRate[SMapY >> 2][SMapX >> 2];
+    z = FireRate[SMapY >> 3][SMapX >> 3];
     Rate = 10;
     if (z) {
         Rate = 3;

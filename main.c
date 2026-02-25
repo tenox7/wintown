@@ -1480,9 +1480,8 @@ LRESULT CALLBACK minimapWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
                     break;
 
                 case MINIMAP_MODE_FIRE:
-                    /* FireRate is quarter-size array, so check bounds and access correctly */
-                    if ((x/4) < (WORLD_X/4) && (y/4) < (WORLD_Y/4)) {
-                        coverage = FireRate[y/4][x/4];
+                    if ((x/8) < SmX && (y/8) < SmY) {
+                        coverage = FireRate[y/8][x/8];
                         if (coverage > 0) {
                             /* Scale down short values for display - original starts with 1000 */
                             int scaled = coverage / 4;  /* Scale down from short range */
@@ -1505,9 +1504,8 @@ LRESULT CALLBACK minimapWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
                     break;
 
                 case MINIMAP_MODE_POLICE:
-                    /* PoliceMapEffect is quarter-size array, so check bounds and access correctly */
-                    if ((x/4) < (WORLD_X/4) && (y/4) < (WORLD_Y/4)) {
-                        coverage = PoliceMapEffect[y/4][x/4];
+                    if ((x/8) < SmX && (y/8) < SmY) {
+                        coverage = PoliceMapEffect[y/8][x/8];
                         if (coverage > 0) {
                             /* Scale down short values for display - original starts with 1000 */
                             scaled = coverage / 4;  /* Scale down from short range */

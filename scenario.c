@@ -129,9 +129,9 @@ int loadScenario(int scenarioId) {
     /* Set city name */
     strcpy(cityFileName, name);
 
-    /* Set year and month */
     CityYear = startYear;
     CityMonth = 0;
+    CityTime = ((startYear - 1900) * 48) + 2;
 
     /* Load scenario map data from embedded resources */
     switch (scenarioId) {
@@ -190,8 +190,7 @@ int loadScenario(int scenarioId) {
     }
     ScoreType = ScenarioID;
 
-    /* Force scenarios to start running */
-    SetGameSpeed(SPEED_MEDIUM);
+    SetGameSpeed(SPEED_FAST);
 
     return 1;
 }
@@ -240,10 +239,9 @@ void scenarioDisaster(void) {
         {
             disasterX = SimRandom(WORLD_X);
             disasterY = SimRandom(WORLD_Y);
-            if (DisasterWait == 20) {
-                addGameLog("SCENARIO EVENT: Hamburg firebombing attack has begun!");
-            }
             makeExplosion(disasterX, disasterY);
+            ClearMes();
+            SendMesAt(-30, disasterX, disasterY);
         }
         break;
     case 4: /* Bern */

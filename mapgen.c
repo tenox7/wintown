@@ -156,51 +156,49 @@ static void generateRivers(void) {
     dir = lastDir;
     
     while (x >= 0 && x < WORLD_X-9 && y >= 0 && y < WORLD_Y-9) {
-        placeRiverPattern(x, y, 1); /* Large river pattern */
-        
-        /* Change direction with some randomness */
-        if (genRandom(10) > 4) dir++;
-        if (genRandom(10) > 4) dir--;
-        if (genRandom(10) == 0) dir = lastDir;
-        
+        placeRiverPattern(x, y, 1);
+        if (genRandom(99) < 10) {
+            dir = lastDir;
+        } else {
+            if (genRandom(199) > 90) dir++;
+            if (genRandom(199) > 90) dir--;
+        }
         dir = dir & 7;
         x += dirTable[0][dir];
         y += dirTable[1][dir];
     }
-    
-    /* Generate secondary branch */
+
     x = startX;
     y = startY;
     lastDir = lastDir ^ 4;
     dir = lastDir;
-    
+
     while (x >= 0 && x < WORLD_X-9 && y >= 0 && y < WORLD_Y-9) {
-        placeRiverPattern(x, y, 1); /* Large river pattern */
-        
-        /* Change direction with some randomness */
-        if (genRandom(10) > 4) dir++;
-        if (genRandom(10) > 4) dir--;
-        if (genRandom(10) == 0) dir = lastDir;
-        
+        placeRiverPattern(x, y, 1);
+        if (genRandom(99) < 10) {
+            dir = lastDir;
+        } else {
+            if (genRandom(199) > 90) dir++;
+            if (genRandom(199) > 90) dir--;
+        }
         dir = dir & 7;
         x += dirTable[0][dir];
         y += dirTable[1][dir];
     }
-    
-    /* Generate small tributary */
+
     x = startX;
     y = startY;
     lastDir = genRandom(3);
     dir = lastDir;
-    
+
     while (x >= 0 && x < WORLD_X-6 && y >= 0 && y < WORLD_Y-6) {
-        placeRiverPattern(x, y, 0); /* Small river pattern */
-        
-        /* Change direction with some randomness */
-        if (genRandom(10) > 5) dir++;
-        if (genRandom(10) > 5) dir--;
-        if (genRandom(12) == 0) dir = lastDir;
-        
+        placeRiverPattern(x, y, 0);
+        if (genRandom(99) < 10) {
+            dir = lastDir;
+        } else {
+            if (genRandom(199) > 90) dir++;
+            if (genRandom(199) > 90) dir--;
+        }
         dir = dir & 7;
         x += dirTable[0][dir];
         y += dirTable[1][dir];

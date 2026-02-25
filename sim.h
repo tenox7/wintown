@@ -34,8 +34,8 @@ typedef long QUAD;
 #define WORLD_W         WORLD_X
 #define WORLD_H         WORLD_Y
 
-#define SmX             (WORLD_X >> 1)
-#define SmY             (WORLD_Y >> 1)
+#define SmX             (WORLD_X >> 3)
+#define SmY             ((WORLD_Y + 7) >> 3)
 
 /* Bounds checking macro for world coordinates */
 #define BOUNDS_CHECK(x,y) ((x) >= 0 && (x) < WORLD_X && (y) >= 0 && (y) < WORLD_Y)
@@ -316,15 +316,15 @@ extern Byte PollutionMem[WORLD_Y/2][WORLD_X/2]; /* Pollution density map (half s
 extern Byte LandValueMem[WORLD_Y/2][WORLD_X/2]; /* Land value map (half size) */
 extern Byte CrimeMem[WORLD_Y/2][WORLD_X/2];   /* Crime map (half size) */
 
-/* Quarter-sized maps for effects */
-extern Byte TerrainMem[WORLD_Y/4][WORLD_X/4];  /* Terrain memory (quarter size) */
-extern Byte FireStMap[WORLD_Y/4][WORLD_X/4];   /* Fire station map (quarter size) */
-extern Byte FireRate[WORLD_Y/4][WORLD_X/4];    /* Fire coverage rate (quarter size) */
-extern Byte PoliceMap[WORLD_Y/4][WORLD_X/4];   /* Police station map (quarter size) */
-extern Byte PoliceMapEffect[WORLD_Y/4][WORLD_X/4]; /* Police station effect (quarter size) */
+/* Quarter-sized maps */
+extern Byte TerrainMem[WORLD_Y/4][WORLD_X/4];
 
-/* Commercial development score */
-extern short ComRate[WORLD_Y/4][WORLD_X/4];    /* Commercial score (quarter size) */
+/* Eighth-sized maps (SmY x SmX) - matches original resolution */
+extern short FireStMap[SmY][SmX];
+extern short FireRate[SmY][SmX];
+extern short PoliceMap[SmY][SmX];
+extern short PoliceMapEffect[SmY][SmX];
+extern short ComRate[SmY][SmX];
 
 /* Rate of growth memory (1/8th size) */
 #define ROGMEM_Y (WORLD_Y/8+1)
@@ -356,6 +356,7 @@ extern int PrevResPop;      /* Debug tracker for last residential population val
 extern int PrevCityPop;     /* Debug tracker for last city population value */
 
 /* Counters */
+extern int DoInitialEval; /* Run CityEvaluation on first pass */
 extern int Scycle;       /* Simulation cycle counter (0-1023) */
 extern int Fcycle;       /* Frame counter (0-1023) */
 extern int Spdcycle;     /* Speed cycle counter (0-1023) */
@@ -496,6 +497,7 @@ void TogglePause(void);
 /* Functions implemented in zone.c */
 void DoZone(int Xloc, int Yloc, int pos);
 int calcResPop(int zone);   /* Calculate residential zone population */
+int DoFreePop(int x, int y); /* Count free houses around FREEZ zone */
 int calcComPop(int zone);   /* Calculate commercial zone population */
 int calcIndPop(int zone);   /* Calculate industrial zone population */
 

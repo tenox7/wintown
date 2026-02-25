@@ -192,7 +192,7 @@ static void DoIndOut(int pop, int value);
 static int EvalRes(int traf);
 static int EvalCom(int traf);
 static int EvalInd(int traf);
-static int DoFreePop(int x, int y);
+int DoFreePop(int x, int y);
 static void SetZPower(int x, int y);
 /* Using global calcResPop, calcComPop, calcIndPop from simulation.h */
 
@@ -374,7 +374,7 @@ static void DoSPZ(int x, int y) {
             effect = (Map[y][x] & POWERBIT) ? FireEffect : (FireEffect >> 1);
             if (!FindPRoad())
                 effect >>= 1;
-            FireStMap[y >> 2][x >> 2] += (Byte)effect;
+            FireStMap[y >> 3][x >> 3] += effect;
         }
         return;
 
@@ -387,7 +387,7 @@ static void DoSPZ(int x, int y) {
             effect = (Map[y][x] & POWERBIT) ? PoliceEffect : (PoliceEffect >> 1);
             if (!FindPRoad())
                 effect >>= 1;
-            PoliceMap[y >> 2][x >> 2] += (Byte)effect;
+            PoliceMap[y >> 3][x >> 3] += effect;
         }
         return;
 
@@ -886,7 +886,7 @@ static int EvalCom(int traf) {
     short Value;
     
     if (traf < 0) return (-3000);
-    Value = ComRate[SMapY >>2][SMapX >>2];
+    Value = ComRate[SMapY >> 3][SMapX >> 3];
     return (Value);
 }
 
@@ -897,7 +897,7 @@ static int EvalInd(int traf) {
 }
 
 /* Count population of free houses */
-static int DoFreePop(int x, int y) {
+int DoFreePop(int x, int y) {
     int count;
     int xx;
     int yy;

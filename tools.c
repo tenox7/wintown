@@ -791,6 +791,14 @@ int LayDoze(int x, int y, short *tilePtr) {
     case VBRIDGE:
     case BRWV:
     case BRWH:
+    case HBRDG0:
+    case HBRDG1:
+    case HBRDG2:
+    case HBRDG3:
+    case VBRDG0:
+    case VBRDG1:
+    case VBRDG2:
+    case VBRDG3:
     case HPOWER:
     case VPOWER:
     case HRAIL:
@@ -2511,13 +2519,16 @@ int Place4x4Building(int mapX, int mapY, int baseValue, int centerTile, int tota
     index = 0;
     for (dy = -1; dy <= 2; dy++) {
         for (dx = -1; dx <= 2; dx++) {
+            int flags;
             if (dx == 0 && dy == 0) {
                 setMapTile(mapX, mapY, centerTile, ZONEBIT | BULLBIT | CONDBIT, TILE_SET_REPLACE, "PlaceBuilding-center");
             } else {
-                if (index == 5) {
+                flags = BULLBIT | CONDBIT;
+                if (index == 5)
                     index++;
-                }
-                setMapTile(mapX + dx, mapY + dy, baseValue + index, BULLBIT | CONDBIT, TILE_SET_REPLACE, "PlaceBuilding-tile");
+                if (dx == 0 && dy == 1 && (centerTile == POWERPLANT || centerTile == NUCLEAR))
+                    flags |= ANIMBIT;
+                setMapTile(mapX + dx, mapY + dy, baseValue + index, flags, TILE_SET_REPLACE, "PlaceBuilding-tile");
             }
             index++;
         }

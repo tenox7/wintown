@@ -146,42 +146,40 @@ void makeFire(int x, int y) {
     }
 }
 
-/* Create a monster (Godzilla-like) disaster */
 void makeMonster(void) {
-    int x, y;
+    int x, y, z, done;
     SimSprite *monster;
+    extern short PolMaxX, PolMaxY;
 
-    /* Log the monster disaster */
-    addGameLog("DISASTER: A monster has been reported in the city!");
-    addGameLog("Monster is destroying everything in its path!");
-    addDebugLog("Monster disaster starting - creating animated sprite");
-
-    /* Find a good starting position (preferably at edge of map) */
-    if (SimRandom(2) == 0) {
-        /* Start from left or right edge */
-        x = (SimRandom(2) == 0) ? 0 : (WORLD_X - 1);
-        y = SimRandom(WORLD_Y);
-    } else {
-        /* Start from top or bottom edge */
-        x = SimRandom(WORLD_X);
-        y = (SimRandom(2) == 0) ? 0 : (WORLD_Y - 1);
+    monster = GetSpriteByType(SPRITE_MONSTER);
+    if (monster) {
+        monster->count = 1000;
+        monster->dest_x = PolMaxX << 4;
+        monster->dest_y = PolMaxY << 4;
+        return;
     }
 
-    /* Create animated monster sprite */
+    done = 0;
+    for (z = 0; z < 300; z++) {
+        x = SimRandom(WORLD_X - 20) + 10;
+        y = SimRandom(WORLD_Y - 10) + 5;
+        if ((Map[y][x] & LOMASK) == RIVER) {
+            done = 1;
+            break;
+        }
+    }
+    if (!done) {
+        x = WORLD_X / 2;
+        y = WORLD_Y / 2;
+    }
+
     monster = NewSprite(SPRITE_MONSTER, x << 4, y << 4);
     if (monster) {
-        addGameLog("Animated monster sprite created at %d,%d", x, y);
-        addDebugLog("Monster sprite: x=%d y=%d type=%d", monster->x, monster->y, monster->type);
-    } else {
-        addGameLog("Failed to create monster sprite - falling back to fire");
-        /* Fallback: create fire if sprite creation failed */
-        makeFire(x, y);
+        monster->dest_x = PolMaxX << 4;
+        monster->dest_y = PolMaxY << 4;
     }
 
-    /* Show enhanced notification dialog */
     ShowNotification(NOTIF_MONSTER_SIGHTED);
-
-    /* Force redraw */
     InvalidateRect(hwndMain, NULL, FALSE);
 }
 
@@ -282,34 +280,18 @@ static void doMeltdown(int sx, int sy) {
     InvalidateRect(hwndMain, NULL, FALSE);
 }
 
-/* Create a tornado disaster */
 void makeTornado(void) {
     int x, y;
     SimSprite *tornado;
 
-    /* Log the tornado disaster */
-    addGameLog("DISASTER: Tornado warning issued!");
-    addGameLog("Tornado touching down and moving across the city!");
-    addDebugLog("Tornado disaster starting - creating animated sprite");
+    if (GetSpriteByType(SPRITE_TORNADO))
+        return;
 
-    /* Pick a random starting position */
-    x = SimRandom(WORLD_X);
-    y = SimRandom(WORLD_Y);
+    x = SimRandom(WORLD_X - 20) + 10;
+    y = SimRandom(WORLD_Y - 10) + 5;
 
-    /* Create animated tornado sprite */
-    tornado = NewSprite(SPRITE_TORNADO, x << 4, y << 4);
-    if (tornado) {
-        addGameLog("Animated tornado sprite created at %d,%d", x, y);
-        addDebugLog("Tornado sprite: x=%d y=%d type=%d", tornado->x, tornado->y, tornado->type);
-    } else {
-        addGameLog("Failed to create tornado sprite - falling back to fire");
-        /* Fallback: create fire if sprite creation failed */
-        makeFire(x, y);
-    }
+    tornado = NewSprite(SPRITE_TORNADO, (x << 4) + 8, (y << 4) + 8);
 
-    /* Show enhanced notification dialog */
     ShowNotificationAt(NOTIF_TORNADO, x, y);
-
-    /* Force redraw */
     InvalidateRect(hwndMain, NULL, FALSE);
 }

@@ -17,8 +17,8 @@ static short CrimeMaxX, CrimeMaxY; /* Coordinates of highest crime */
 /* Temporary arrays for smoothing operations - reorganized for cache efficiency */
 static Byte tem[WORLD_Y / 2][WORLD_X / 2];  /* Temp array 1 for smoothing - row-major */
 static Byte tem2[WORLD_Y / 2][WORLD_X / 2]; /* Temp array 2 for smoothing - row-major */
-static Byte STem[WORLD_Y / 4][WORLD_X / 4]; /* Small temp array for fire/police map - row-major */
-static Byte Qtem[WORLD_Y / 4][WORLD_X / 4]; /* Quarter-size temp array - row-major */
+static short STem[SmY][SmX];
+static Byte Qtem[WORLD_Y / 4][WORLD_X / 4];
 
 /* Function prototypes */
 static void ClrTemArray(void);
@@ -108,75 +108,45 @@ static void DoSmooth2(void) {
     }
 }
 
-/* Smooth the Police Station effect map */
 static void SmoothPSMap(void) {
     int x, y, edge;
 
-    /* Quarter size map */
-    for (x = 0; x < WORLD_X / 4; x++) {
-        for (y = 0; y < WORLD_Y / 4; y++) {
+    for (x = 0; x < SmX; x++) {
+        for (y = 0; y < SmY; y++) {
             edge = 0;
-
-            /* Add up surrounding cells */
-            if (x > 0) {
-                edge += PoliceMap[y][x - 1];
-            }
-            if (x < (WORLD_X / 4 - 1)) {
-                edge += PoliceMap[y][x + 1];
-            }
-            if (y > 0) {
-                edge += PoliceMap[y - 1][x];
-            }
-            if (y < (WORLD_Y / 4 - 1)) {
-                edge += PoliceMap[y + 1][x];
-            }
-
-            /* Original WiNTown smoothing algorithm */
-            edge = (edge >> 2) + PoliceMap[y][x];  /* (neighbors/4) + current */
-            STem[y][x] = (Byte)(edge >> 1);
+            if (x > 0) edge += PoliceMap[y][x - 1];
+            if (x < (SmX - 1)) edge += PoliceMap[y][x + 1];
+            if (y > 0) edge += PoliceMap[y - 1][x];
+            if (y < (SmY - 1)) edge += PoliceMap[y + 1][x];
+            edge = (edge >> 2) + PoliceMap[y][x];
+            STem[y][x] = (short)(edge >> 1);
         }
     }
 
-    /* Copy back to original map */
-    for (x = 0; x < WORLD_X / 4; x++) {
-        for (y = 0; y < WORLD_Y / 4; y++) {
+    for (x = 0; x < SmX; x++) {
+        for (y = 0; y < SmY; y++) {
             PoliceMap[y][x] = STem[y][x];
         }
     }
 }
 
-/* Smooth the Fire Station effect map */
 static void SmoothFSMap(void) {
     int x, y, edge;
 
-    /* Quarter size map */
-    for (x = 0; x < WORLD_X / 4; x++) {
-        for (y = 0; y < WORLD_Y / 4; y++) {
+    for (x = 0; x < SmX; x++) {
+        for (y = 0; y < SmY; y++) {
             edge = 0;
-
-            /* Add up surrounding cells */
-            if (x > 0) {
-                edge += FireStMap[y][x - 1];
-            }
-            if (x < (WORLD_X / 4 - 1)) {
-                edge += FireStMap[y][x + 1];
-            }
-            if (y > 0) {
-                edge += FireStMap[y - 1][x];
-            }
-            if (y < (WORLD_Y / 4 - 1)) {
-                edge += FireStMap[y + 1][x];
-            }
-
-            /* Original WiNTown smoothing algorithm */
-            edge = (edge >> 2) + FireStMap[y][x];  /* (neighbors/4) + current */
-            STem[y][x] = (Byte)(edge >> 1);
+            if (x > 0) edge += FireStMap[y][x - 1];
+            if (x < (SmX - 1)) edge += FireStMap[y][x + 1];
+            if (y > 0) edge += FireStMap[y - 1][x];
+            if (y < (SmY - 1)) edge += FireStMap[y + 1][x];
+            edge = (edge >> 2) + FireStMap[y][x];
+            STem[y][x] = (short)(edge >> 1);
         }
     }
 
-    /* Copy back to original map */
-    for (x = 0; x < WORLD_X / 4; x++) {
-        for (y = 0; y < WORLD_Y / 4; y++) {
+    for (x = 0; x < SmX; x++) {
+        for (y = 0; y < SmY; y++) {
             FireStMap[y][x] = STem[y][x];
         }
     }
@@ -267,10 +237,11 @@ static int GetPValueLocal(int loc) {
 
 /* Get population density for a zone type */
 static int GetPDen(int zone) {
-    /* Residential population */
-    if (zone < COMBASE) {
+    if (zone == FREEZ)
+        return DoFreePop(SMapX, SMapY);
+
+    if (zone < COMBASE)
         return calcResPop(zone);
-    }
 
     /* Commercial population (higher weight) */
     if (zone < INDBASE) {
@@ -285,37 +256,28 @@ static int GetPDen(int zone) {
     return 0;
 }
 
-/* Calculate commercial rate based on distance to center */
 static void DistIntMarket(void) {
     int x, y, z;
 
-    for (x = 0; x < WORLD_X / 4; x++) {
-        for (y = 0; y < WORLD_Y / 4; y++) {
-            /* Get Manhattan distance to city center */
-            z = GetDisCC(x << 2, y << 2);
-
-            /* Convert to commercial rate - closer to center is better */
+    for (x = 0; x < SmX; x++) {
+        for (y = 0; y < SmY; y++) {
+            z = GetDisCC(x << 3, y << 3);
             z = z << 2;
             z = 64 - z;
-
-            /* Set commercial rate */
             ComRate[y][x] = z;
         }
     }
 }
 
-/* Fire effect analysis - spread fire station coverage */
 void FireAnalysis(void) {
     int x, y;
 
-    /* Smooth the fire station map three times - original algorithm */
     SmoothFSMap();
     SmoothFSMap();
     SmoothFSMap();
 
-    /* Copy to fire rate map */
-    for (x = 0; x < WORLD_X / 4; x++) {
-        for (y = 0; y < WORLD_Y / 4; y++) {
+    for (x = 0; x < SmX; x++) {
+        for (y = 0; y < SmY; y++) {
             FireRate[y][x] = FireStMap[y][x];
         }
     }
@@ -554,7 +516,7 @@ void CrimeScan(void) {
                     z = 300;
                 }
 
-                z -= PoliceMap[y >> 1][x >> 1];
+                z -= PoliceMap[y >> 2][x >> 2];
 
                 /* Ensure crime values are in range 0-250 */
                 if (z > 250) {
@@ -590,9 +552,8 @@ void CrimeScan(void) {
         CrimeAverage = 0;
     }
 
-    /* Copy police map to effect map */
-    for (x = 0; x < WORLD_X / 4; x++) {
-        for (y = 0; y < WORLD_Y / 4; y++) {
+    for (x = 0; x < SmX; x++) {
+        for (y = 0; y < SmY; y++) {
             PoliceMapEffect[y][x] = PoliceMap[y][x];
         }
     }

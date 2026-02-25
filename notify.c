@@ -245,7 +245,7 @@ void doMessage(void) {
         if (MesNum < 0) {
             MesNum = -MesNum;
             LastMesTime = GetTickCount();
-        } else if ((GetTickCount() - LastMesTime) > (60 * 1000)) { /* 60 seconds timeout */
+        } else if ((GetTickCount() - LastMesTime) > (30 * 1000)) {
             MesNum = 0;
             addDebugLog("doMessage: Message timed out");
             return;
