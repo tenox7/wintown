@@ -564,57 +564,78 @@ void DoCopterSprite(SimSprite *sprite) {
 }
 
 /* Bus sprite behavior */
+/* Bus sprite behavior - original physics with WinTown road-following */
 void DoBusSprite(SimSprite *sprite) {
+    static short BusDx[5] = {0, 1, 0, -1, 0};
+    static short BusDy[5] = {-1, 0, 1, 0, 0};
+    static short Dir2Frame[4] = {1, 2, 1, 2};
     short tile, dir;
-    int dx, dy, speed;
-    
-    /* Lane correction - buses drift to proper lane */
-    if (sprite->dir == 0 || sprite->dir == 2) { /* East-West */
-        if (sprite->y & 1) {
-            sprite->y--;
+    int tx, ty, z, speed;
+
+    if (sprite->turn) {
+        if (sprite->turn < 0) {
+            if (sprite->dir & 1) sprite->frame = 4;
+            else sprite->frame = 3;
+            sprite->turn++;
+            sprite->dir = (sprite->dir - 1) & 3;
+        } else {
+            if (sprite->dir & 1) sprite->frame = 3;
+            else sprite->frame = 4;
+            sprite->turn--;
+            sprite->dir = (sprite->dir + 1) & 3;
         }
-    } else { /* North-South */
-        if (sprite->x & 1) {
-            sprite->x--;
-        }
+        sprite->x += BusDx[sprite->dir];
+        sprite->y += BusDy[sprite->dir];
+        return;
     }
-    
-    /* Check traffic density for speed adjustment */
-    dx = sprite->x >> 5;
-    dy = sprite->y >> 5;
-    
-    if (dx >= 0 && dx < WORLD_X/2 && dy >= 0 && dy < WORLD_Y/2) {
-        speed = TrfDensity[dx][dy] >> 1;
-        if (speed < 1) speed = 1;
-        if (speed > 8) speed = 8;
-        
-        if (sprite->count > 0) {
-            sprite->count--;
-            return;
-        }
-        sprite->count = speed;
+
+    if (sprite->frame == 3 || sprite->frame == 4)
+        sprite->frame = Dir2Frame[sprite->dir];
+
+    tx = (sprite->x + sprite->x_hot) >> 5;
+    ty = (sprite->y + sprite->y_hot) >> 5;
+    if (tx >= 0 && tx < (WORLD_X >> 1) && ty >= 0 && ty < (WORLD_Y >> 1)) {
+        z = TrfDensity[tx][ty] >> 6;
+        if (z > 1) z--;
+    } else z = 0;
+
+    switch (z) {
+    case 0: speed = 4; break;
+    case 1: speed = 2; break;
+    default: speed = 1; break;
     }
-    
-    if (sprite->frame == 3 || sprite->frame == 4) {
-        sprite->frame = TrainPic2[sprite->dir];
-    }
-    
-    /* Move bus */
-    MoveSprite(sprite, MOVEMENT_TYPE_GROUND);
-    
-    /* Check road surface */
+
+    sprite->x += BusDx[sprite->dir] * speed;
+    sprite->y += BusDy[sprite->dir] * speed;
+
     tile = GetChar(sprite->x + sprite->x_hot, sprite->y + sprite->y_hot);
-    
-    if (!CanDriveOn(tile)) {
-        /* Try to find road */
+    if (CanDriveOn(tile) <= 0) {
+        sprite->x -= BusDx[sprite->dir] * speed;
+        sprite->y -= BusDy[sprite->dir] * speed;
         dir = TryOther(sprite->x + sprite->x_hot, sprite->y + sprite->y_hot, sprite->dir, sprite);
         if (dir != sprite->dir) {
             sprite->dir = dir;
-            sprite->frame = TrainPic2[dir];
+            sprite->frame = Dir2Frame[dir];
         } else {
-            /* Stuck - remove bus */
             DestroySprite(sprite);
+            return;
         }
+    }
+
+    if (!disastersDisabled) {
+        int i, explode = 0;
+        SimSprite *s;
+        for (i = 0; i < MAX_SPRITES; i++) {
+            s = &GlobalSprites[i];
+            if (sprite == s || s->frame == 0) continue;
+            if ((s->type == SPRITE_BUS ||
+                 (s->type == SPRITE_TRAIN && s->frame != 5)) &&
+                CheckSpriteCollision(sprite, s)) {
+                ExplodeSprite(s);
+                explode = 1;
+            }
+        }
+        if (explode) ExplodeSprite(sprite);
     }
 }
 
@@ -763,12 +784,17 @@ static int IsWater(short tile) {
     return 0;
 }
 
-/* Helper function to check if bus can drive on tile */
+/* Check if bus can drive on tile - matches original Micropolis
+ * Returns: 1=smooth road, -1=bumpy/dirt, 0=can't drive */
 static int CanDriveOn(int tileValue) {
-    return (tileValue >= ROADBASE && tileValue <= LASTROAD) ||
-           (tileValue >= BRWH && tileValue <= BRWV) ||
-           (tileValue == HROADPOWER) ||
-           (tileValue == VROADPOWER);
+    tileValue &= LOMASK;
+    if ((tileValue >= ROADBASE && tileValue <= LASTROAD &&
+         tileValue != BRWH && tileValue != BRWV) ||
+        tileValue == HRAILROAD || tileValue == VRAILROAD)
+        return 1;
+    if (tileValue == DIRT || tileValue == TREEBASE)
+        return -1;
+    return 0;
 }
 
 /* Try to find alternate direction */
@@ -1033,116 +1059,159 @@ SimSprite* GetSprite(int type) {
 }
 
 /* Monster (Godzilla) sprite behavior */
+/* Monster sprite behavior - matches original Micropolis w_sprite.c */
 void DoMonsterSprite(SimSprite *sprite) {
     static short Gx[5] = {2, 2, -2, -2, 0};
     static short Gy[5] = {-2, 2, 2, -2, 0};
-    int dx, dy, d, z;
-    
-    if (sprite->count > 0) {
-        sprite->count--;
-    } else {
-        DestroySprite(sprite);
-        return;
-    }
-    
-    /* Navigate toward destination */
-    dx = sprite->dest_x - sprite->x;
-    dy = sprite->dest_y - sprite->y;
-    
-    if (abs(dx) < 18 && abs(dy) < 18) {
-        extern short PolMaxX, PolMaxY;
-        sprite->step = 0;
-        sprite->dest_x = PolMaxX << 4;
-        sprite->dest_y = PolMaxY << 4;
-    }
-    
-    /* Determine movement direction */
-    d = 4; /* Default: stop */
-    if (abs(dx) > abs(dy)) {
-        if (dx > 0) d = 0; /* East */
-        else d = 2; /* West */
-    } else {
-        if (dy > 0) d = 1; /* South */
-        else d = 3; /* North */
-    }
-    
-    sprite->dir = d;
-    
-    if (d < 4) {
-        sprite->x += Gx[d];
-        sprite->y += Gy[d];
-    }
+    static short ND1[4] = {0, 1, 2, 3};
+    static short ND2[4] = {1, 2, 3, 0};
+    static short nn1[4] = {2, 5, 8, 11};
+    static short nn2[4] = {11, 2, 5, 8};
+    short d, z, c;
+    int i;
+    SimSprite *s;
 
-    {
-        int mx = (sprite->x + sprite->x_hot) >> 4;
-        int my = (sprite->y + sprite->y_hot) >> 4;
-        if (!BOUNDS_CHECK(mx, my) ||
-            ((Map[mx][my] & LOMASK) == RIVER && sprite->count != 0 && sprite->control == -1)) {
-            DestroySprite(sprite);
-            return;
+    if (sprite->sound_count > 0) sprite->sound_count--;
+
+    if (sprite->control < 0) {
+        if (sprite->control == -2) {
+            d = (sprite->frame - 1) / 3;
+            z = (sprite->frame - 1) % 3;
+            if (z == 2) sprite->step = 0;
+            if (z == 0) sprite->step = 1;
+            if (sprite->step) z++;
+            else z--;
+            c = GetDir(sprite->x, sprite->y, sprite->dest_x, sprite->dest_y);
+            if (absDist < 18) {
+                sprite->control = -1;
+                sprite->count = 1000;
+                sprite->flag = 1;
+                sprite->dest_x = sprite->orig_x;
+                sprite->dest_y = sprite->orig_y;
+            } else {
+                c = (c - 1) / 2;
+                if (((c != d) && (!Rand(5))) || (!Rand(20))) {
+                    if (((c - d) & 3) == 1 || ((c - d) & 3) == 3) d = c;
+                    else { if (Rand16() & 1) d++; else d--; d &= 3; }
+                } else {
+                    if (!Rand(20)) { if (Rand16() & 1) d++; else d--; d &= 3; }
+                }
+            }
+        } else {
+            d = (sprite->frame - 1) / 3;
+            if (d < 4) {
+                z = (sprite->frame - 1) % 3;
+                if (z == 2) sprite->step = 0;
+                if (z == 0) sprite->step = 1;
+                if (sprite->step) z++;
+                else z--;
+                GetDir(sprite->x, sprite->y, sprite->dest_x, sprite->dest_y);
+                if (absDist < 60) {
+                    if (sprite->flag == 0) {
+                        sprite->flag = 1;
+                        sprite->dest_x = sprite->orig_x;
+                        sprite->dest_y = sprite->orig_y;
+                    } else {
+                        sprite->frame = 0;
+                        return;
+                    }
+                }
+                c = GetDir(sprite->x, sprite->y, sprite->dest_x, sprite->dest_y);
+                c = (c - 1) / 2;
+                if ((c != d) && (!Rand(10))) {
+                    if (Rand16() & 1) z = ND1[d];
+                    else z = ND2[d];
+                    d = 4;
+                    if (!sprite->sound_count)
+                        sprite->sound_count = 50 + Rand(100);
+                }
+            } else {
+                d = 4;
+                c = sprite->frame;
+                z = (c - 13) & 3;
+                if (!(Rand16() & 3)) {
+                    if (Rand16() & 1) z = nn1[z];
+                    else z = nn2[z];
+                    d = (z - 1) / 3;
+                    z = (z - 1) % 3;
+                }
+            }
         }
+    } else {
+        d = sprite->control;
+        z = (sprite->frame - 1) % 3;
+        if (z == 2) sprite->step = 0;
+        if (z == 0) sprite->step = 1;
+        if (sprite->step) z++;
+        else z--;
     }
 
-    /* Update animation frame */
-    z = sprite->step;
-    if (SpriteCycle & 1) { /* Update every other cycle */
-        z = (((d * 3) + z) + 1) % 16; /* 16 frames total */
-        sprite->step = z;
+    z = (((d * 3) + z) + 1);
+    if (z > 16) z = 16;
+    sprite->frame = z;
+
+    sprite->x += Gx[d];
+    sprite->y += Gy[d];
+
+    if (sprite->count > 0) sprite->count--;
+    c = GetChar(sprite->x + sprite->x_hot, sprite->y + sprite->y_hot);
+    if ((c == -1) ||
+        ((c == RIVER) && (sprite->count != 0) && (sprite->control == -1))) {
+        sprite->frame = 0;
     }
-    sprite->frame = z + 1; /* Frame 1-16 */
-    
-    if (!(sprite->count & 3) && !disastersDisabled) {
-        SpriteDestroy(sprite->x + 48, sprite->y + 16);
-        SpriteDestroy(sprite->x + 48 - 16, sprite->y);
-        SpriteDestroy(sprite->x + 48 + 16, sprite->y);
-        SpriteDestroy(sprite->x + 48 - 16, sprite->y + 32);
-        SpriteDestroy(sprite->x + 48 + 16, sprite->y + 32);
+
+    for (i = 0; i < MAX_SPRITES; i++) {
+        s = &GlobalSprites[i];
+        if (s->frame == 0) continue;
+        if ((s->type == SPRITE_AIRPLANE || s->type == SPRITE_HELICOPTER ||
+             s->type == SPRITE_SHIP || s->type == SPRITE_TRAIN) &&
+            CheckSpriteCollision(sprite, s))
+            ExplodeSprite(s);
     }
+
+    SpriteDestroy(sprite->x + 48, sprite->y + 16);
 }
 
-/* Tornado sprite behavior */
+/* Tornado sprite behavior - matches original Micropolis w_sprite.c */
 void DoTornadoSprite(SimSprite *sprite) {
-    static short CDx[9] = {2, 3, 2, 0, -2, -3};
-    static short CDy[9] = {-2, 0, 2, 3, 2, 0};
-    int z, d;
+    static short TDx[9] = {2, 3, 2, 0, -2, -3};
+    static short TDy[9] = {-2, 0, 2, 3, 2, 0};
+    short z;
+    int i;
+    SimSprite *s;
 
     z = sprite->frame;
     if (z == 2) {
-        z = sprite->flag ? 3 : 1;
+        if (sprite->flag) z = 3;
+        else z = 1;
     } else {
-        sprite->flag = (z == 1) ? 1 : 0;
+        if (z == 1) sprite->flag = 1;
+        else sprite->flag = 0;
         z = 2;
     }
 
-    if (sprite->count > 0)
-        sprite->count--;
+    if (sprite->count > 0) sprite->count--;
 
     sprite->frame = z;
 
-    d = SimRandom(6);
-    sprite->x += CDx[d];
-    sprite->y += CDy[d];
-
-    {
-        int i;
-        SimSprite *s;
-        for (i = 0; i < MAX_SPRITES; i++) {
-            s = &GlobalSprites[i];
-            if (s->frame == 0 || s->type == SPRITE_UNDEFINED)
-                continue;
-            if (s->type == SPRITE_AIRPLANE || s->type == SPRITE_HELICOPTER ||
-                s->type == SPRITE_SHIP || s->type == SPRITE_TRAIN) {
-                if (CheckSpriteCollision(sprite, s))
-                    ExplodeSprite(s);
-            }
-        }
+    for (i = 0; i < MAX_SPRITES; i++) {
+        s = &GlobalSprites[i];
+        if (s->frame == 0) continue;
+        if ((s->type == SPRITE_AIRPLANE || s->type == SPRITE_HELICOPTER ||
+             s->type == SPRITE_SHIP || s->type == SPRITE_TRAIN) &&
+            CheckSpriteCollision(sprite, s))
+            ExplodeSprite(s);
     }
 
-    if (SpriteNotInBounds(sprite) || sprite->count == 0 ||
-        SimRandom(TORNADO_EARLY_END_CHANCE) == 0) {
-        DestroySprite(sprite);
-        return;
-    }
+    z = Rand(5);
+    sprite->x += TDx[z];
+    sprite->y += TDy[z];
+
+    if (SpriteNotInBounds(sprite))
+        sprite->frame = 0;
+
+    if ((sprite->count != 0) && (!Rand(500)))
+        sprite->frame = 0;
 
     SpriteDestroy(sprite->x + 48, sprite->y + 40);
 }
