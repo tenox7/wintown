@@ -140,18 +140,18 @@ void GenerateCopter(int x, int y);
 
 /* Utility functions */
 int GetSpriteCount(void);
-SimSprite* GetSprite(int index);
-SimSprite* GetSpriteByType(int type);
+SimSprite* GetSpriteByIndex(int index);
+SimSprite* GetSprite(int type);
 void MoveSprite(SimSprite *sprite, int movementType);
 
 /* External variables that need to be defined elsewhere */
-extern short Map[100][120];          /* Main game map */
-extern unsigned char TrfDensity[50][60]; /* Traffic density map */
+extern short Map[120][100];          /* Main game map */
+extern unsigned char TrfDensity[60][50]; /* Traffic density map */
 extern int TotalPop;                 /* Total city population */
-extern int TrafficAverage;           /* Average traffic level */
+extern short TrafficAverage;
 extern int CrimeAverage;             /* Average crime level */
 extern int RoadTotal;                /* Total road count */
 extern int SimRandom(int range);     /* Random number generator */
-extern void makeFire(int x, int y);  /* Fire creation function */
+extern int MakeFire();
 
 #endif /* _SPRITE_H */

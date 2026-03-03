@@ -30,14 +30,14 @@ short ScoreWait = 0;     /* Score wait for scenario */
 extern int SimRandom(int range);     /* From simulation.c */
 extern int loadFile(char *filename); /* From main.c */
 
-/* Disaster functions from disasters.c */
-extern void doEarthquake(void);          /* Earthquake disaster */
-extern void makeFlood(void);             /* Flooding disaster */
-extern void makeFire(int x, int y);      /* Fire disaster at specific location */
-extern void makeMonster(void);           /* Monster attack disaster */
-extern void makeTornado(void);           /* Tornado disaster */
-extern void makeExplosion(int x, int y); /* Explosion at specific location */
-extern void makeMeltdown(void);          /* Nuclear meltdown disaster */
+/* Disaster functions - s_disast.c provides originals, disastr.c provides WinTown */
+extern int MakeEarthquake();
+extern int MakeFlood();
+extern int MakeFire();
+extern int MakeMonster();
+extern int MakeTornado();
+extern int MakeExplosion();
+extern int MakeMeltdown();
 
 /* External functions from main.c */
 extern void ForceFullCensus(void); /* Census calculation function */
@@ -225,7 +225,7 @@ void scenarioDisaster(void) {
         if (DisasterWait <= 1) {
             addGameLog("SCENARIO EVENT: San Francisco earthquake is happening now!");
             addGameLog("Significant damage reported throughout the city!");
-            doEarthquake();
+            MakeEarthquake();
         } else {
             /* Debug logging for earthquake countdown */
             static int lastReported = -1;
@@ -239,7 +239,7 @@ void scenarioDisaster(void) {
         {
             disasterX = SimRandom(WORLD_X);
             disasterY = SimRandom(WORLD_Y);
-            makeExplosion(disasterX, disasterY);
+            MakeExplosion(disasterX, disasterY);
             ClearMes();
             SendMesAt(-30, disasterX, disasterY);
         }
@@ -251,7 +251,7 @@ void scenarioDisaster(void) {
         if (DisasterWait <= 1) {
             addGameLog("SCENARIO EVENT: Tokyo monster attack is underway!");
             addGameLog("Giant creature is destroying buildings in its path!");
-            makeMonster();
+            MakeMonster();
         }
         break;
     case 6: /* Detroit - no disaster in original */
@@ -260,7 +260,7 @@ void scenarioDisaster(void) {
         if (DisasterWait <= 1) {
             addGameLog("SCENARIO EVENT: Boston nuclear meltdown is happening!");
             addGameLog("Nuclear power plant has suffered a catastrophic failure!");
-            makeMeltdown();
+            MakeMeltdown();
         }
         break;
     case 8: /* Rio */
@@ -272,7 +272,7 @@ void scenarioDisaster(void) {
                 addGameLog("Flood waters continue to spread!");
             }
             addDebugLog("Flood event triggered - %d hours until flood peak", DisasterWait);
-            makeFlood();
+            MakeFlood();
         }
         break;
     default:

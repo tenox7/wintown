@@ -102,7 +102,7 @@ int getMapTile(int x, int y) {
     if (!BOUNDS_CHECK(x, y)) {
         return -1;
     }
-    return Map[y][x];
+    return Map[x][y];
 }
 
 /* Get only flags from tile at coordinates */
@@ -110,7 +110,7 @@ int getMapFlags(int x, int y) {
     if (!BOUNDS_CHECK(x, y)) {
         return -1;
     }
-    return Map[y][x] & ~LOMASK;
+    return Map[x][y] & ~LOMASK;
 }
 
 /* Main tile setting function - all tile changes go through here */
@@ -127,7 +127,7 @@ int setMapTile(int x, int y, int tile, int flags, int operation, char* caller) {
     }
     
     /* Get current tile */
-    oldTile = Map[y][x];
+    oldTile = Map[x][y];
     
     /* Calculate new tile value based on operation */
     switch (operation) {
@@ -181,7 +181,7 @@ int setMapTile(int x, int y, int tile, int flags, int operation, char* caller) {
 #endif
     
     /* Make the change */
-    Map[y][x] = newTile;
+    Map[x][y] = newTile;
     tileChangeCount++;
     
     return 1;

@@ -26,9 +26,10 @@ extern int TotalZPop, ResZPop, ComZPop, IndZPop;
 extern int NuclearPop, CoalPop;
 extern int RoadTotal, RailTotal;
 extern int ResPop, StadiumPop, IndPop, PortPop, ComPop, APortPop;
-extern int UnpwrdZCnt, PwrdZCnt;
-extern int PollutionAverage, CrimeAverage, TotalPop, FireStPop, PolicePop;
-extern int TaxRate, RoadEffect, FireEffect, PoliceEffect, TrafficAverage;
+extern int unPwrdZCnt, PwrdZCnt;
+extern int PolluteAverage, CrimeAverage, TotalPop, FireStPop, PolicePop;
+extern int CityTax, RoadEffect, FireEffect, PoliceEffect;
+extern short TrafficAverage;
 extern short ScenarioID, ScoreType, ScoreWait;
 extern int ResCap, IndCap, ComCap;
 
@@ -56,7 +57,7 @@ SendMessages() {
     /* Sync message system variables with simulation variables */
     TotalZPop = ResZPop + ComZPop + IndZPop;
     PowerPop = NuclearPop + CoalPop;
-    /* CityTax variable eliminated - using TaxRate directly */
+    /* CityTax variable eliminated - using CityTax directly */
 
     z = CityTime & 63;
 
@@ -107,13 +108,13 @@ SendMessages() {
                 ComCap = 0;
             break;
         case 32:
-            TM = (float)(UnpwrdZCnt + PwrdZCnt);
+            TM = (float)(unPwrdZCnt + PwrdZCnt);
             if (TM)
                 if ((PwrdZCnt / TM) < 0.7)
                     SendMes(15);
             break;
         case 35:
-            if (PollutionAverage > 60)
+            if (PolluteAverage > 60)
                 SendMes(-10);
             break;
         case 42:
@@ -129,7 +130,7 @@ SendMessages() {
                 SendMes(14);
             break;
         case 51:
-            if (TaxRate > 12)
+            if (CityTax > 12)
                 SendMes(16);
             break;
         case 54:

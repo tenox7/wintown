@@ -183,7 +183,7 @@
  * Prevents alignment traps on Alpha, MIPS, PowerPC processors
  */
 #pragma pack(push, 8)
-short Map[WORLD_Y][WORLD_X];
+short Map[WORLD_X][WORLD_Y];
 short ResHis[HISTLEN / 2];
 short ComHis[HISTLEN / 2];
 short IndHis[HISTLEN / 2];
@@ -465,7 +465,6 @@ void createNewMap(HWND hwnd);
 
 /* External functions - defined in simulation.c */
 extern int SimRandom(int range);
-extern void SetValves(void);
 extern const char *GetCityClassName(void);
 extern void RandomlySeedRand(void);
 
@@ -1194,7 +1193,7 @@ LRESULT CALLBACK infoWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
         y += 20;
 
         /* Draw other stats */
-        wsprintf(buffer, "Traffic: %d  Pollution: %d", TrafficAverage, PollutionAverage);
+        wsprintf(buffer, "Traffic: %d  Pollution: %d", TrafficAverage, PolluteAverage);
         TextOut(hdc, 10, y, buffer, lstrlen(buffer));
         y += 20;
 
@@ -1203,7 +1202,7 @@ LRESULT CALLBACK infoWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
         y += 20;
 
         /* Draw power info */
-        wsprintf(buffer, "Power: Powered=%d Unpowered=%d", PwrdZCnt, UnpwrdZCnt);
+        wsprintf(buffer, "Power: Powered=%d Unpowered=%d", PwrdZCnt, unPwrdZCnt);
         TextOut(hdc, 10, y, buffer, lstrlen(buffer));
 
         EndPaint(hwnd, &ps);
@@ -1305,7 +1304,7 @@ LRESULT CALLBACK minimapWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         /* Draw the minimap based on current mode */
         for (y = 0; y < WORLD_Y; y++) {
             for (x = 0; x < WORLD_X; x++) {
-                tileValue = Map[y][x];
+                tileValue = Map[x][y];
                 tileType = tileValue & LOMASK;
                 color = RGB(0, 0, 0); /* Default black */
 
@@ -1336,7 +1335,7 @@ LRESULT CALLBACK minimapWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 
                 case MINIMAP_MODE_RESIDENTIAL:
                     if (tileType >= RESBASE && tileType < HOSPITAL) {
-                        density = calcResPop(tileType);
+                        density = RZPop(tileType);
                         if (density > 0) {
                             intensity = min(255, density * 25);
                             color = RGB(0, intensity, 0);
@@ -1346,7 +1345,7 @@ LRESULT CALLBACK minimapWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 
                 case MINIMAP_MODE_COMMERCIAL:
                     if (tileType >= COMBASE && tileType < INDBASE) {
-                        density = calcComPop(tileType);
+                        density = CZPop(tileType);
                         if (density > 0) {
                             intensity = min(255, density * 25);
                             color = RGB(0, 0, intensity);
@@ -1356,7 +1355,7 @@ LRESULT CALLBACK minimapWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 
                 case MINIMAP_MODE_INDUSTRIAL:
                     if (tileType >= INDBASE && tileType < PORTBASE) {
-                        density = calcIndPop(tileType);
+                        density = IZPop(tileType);
                         if (density > 0) {
                             intensity = min(255, density * 25);
                             color = RGB(intensity, intensity, 0);
@@ -1383,7 +1382,7 @@ LRESULT CALLBACK minimapWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
                 case MINIMAP_MODE_POPULATION:
                     /* PopDensity is half-size array, so check bounds and access correctly */
                     if ((y/2) < (WORLD_Y/2) && (x/2) < (WORLD_X/2)) {
-                        density = PopDensity[y/2][x/2];
+                        density = PopDensity[x/2][y/2];
                         if (density > 0) {
                             intensity = min(255, density * 2);
                             color = RGB(intensity, 0, intensity);
@@ -1398,7 +1397,7 @@ LRESULT CALLBACK minimapWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
                 case MINIMAP_MODE_TRAFFIC:
                     /* TrfDensity is half-size array, so check bounds and access correctly */
                     if ((y/2) < (WORLD_Y/2) && (x/2) < (WORLD_X/2)) {
-                        density = TrfDensity[y/2][x/2];
+                        density = TrfDensity[x/2][y/2];
                         if (density > 0) {
                             /* Use bright color gradient for traffic */
                             if (density >= 120) {
@@ -1419,7 +1418,7 @@ LRESULT CALLBACK minimapWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
                 case MINIMAP_MODE_POLLUTION:
                     /* PollutionMem is half-size array, so check bounds and access correctly */
                     if ((y/2) < (WORLD_Y/2) && (x/2) < (WORLD_X/2)) {
-                        level = PollutionMem[y/2][x/2];
+                        level = PollutionMem[x/2][y/2];
                         if (level > 0) {
                             /* Use bright color gradient for pollution */
                             if (level >= 200) {
@@ -1440,7 +1439,7 @@ LRESULT CALLBACK minimapWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
                 case MINIMAP_MODE_CRIME:
                     /* CrimeMem is half-size array, so check bounds and access correctly */
                     if ((y/2) < (WORLD_Y/2) && (x/2) < (WORLD_X/2)) {
-                        level = CrimeMem[y/2][x/2];
+                        level = CrimeMem[x/2][y/2];
                         if (level > 0) {
                             /* Use bright red gradient for crime */
                             if (level >= 200) {
@@ -1461,7 +1460,7 @@ LRESULT CALLBACK minimapWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
                 case MINIMAP_MODE_LANDVALUE:
                     /* LandValueMem is half-size array, so check bounds and access correctly */
                     if ((y/2) < (WORLD_Y/2) && (x/2) < (WORLD_X/2)) {
-                        value = LandValueMem[y/2][x/2];
+                        value = LandValueMem[x/2][y/2];
                         if (value > 0) {
                             /* Use bright green gradient for land value */
                             if (value >= 200) {
@@ -1481,7 +1480,7 @@ LRESULT CALLBACK minimapWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 
                 case MINIMAP_MODE_FIRE:
                     if ((x/8) < SmX && (y/8) < SmY) {
-                        coverage = FireRate[y/8][x/8];
+                        coverage = FireRate[x/8][y/8];
                         if (coverage > 0) {
                             /* Scale down short values for display - original starts with 1000 */
                             int scaled = coverage / 4;  /* Scale down from short range */
@@ -1505,7 +1504,7 @@ LRESULT CALLBACK minimapWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 
                 case MINIMAP_MODE_POLICE:
                     if ((x/8) < SmX && (y/8) < SmY) {
-                        coverage = PoliceMapEffect[y/8][x/8];
+                        coverage = PoliceMapEffect[x/8][y/8];
                         if (coverage > 0) {
                             /* Scale down short values for display - original starts with 1000 */
                             scaled = coverage / 4;  /* Scale down from short range */
@@ -2568,7 +2567,7 @@ LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                         for (tx = cx - radius; tx <= cx + radius && !found; tx++) {
                             if (tx < 0 || tx >= WORLD_X || ty < 0 || ty >= WORLD_Y) continue;
                             if (abs(tx - cx) != radius && abs(ty - cy) != radius) continue;
-                            tile = Map[ty][tx] & LOMASK;
+                            tile = Map[tx][ty] & LOMASK;
                             if (tile >= RAILBASE && tile <= LASTRAIL) {
                                 sprite = NewSprite(SPRITE_TRAIN, tx << 4, ty << 4);
                                 if (sprite) {
@@ -2601,7 +2600,7 @@ LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                             tx = cx + dx;
                             ty = cy + dy;
                             if (tx < 0 || tx >= WORLD_X || ty < 0 || ty >= WORLD_Y) continue;
-                            tile = Map[ty][tx] & LOMASK;
+                            tile = Map[tx][ty] & LOMASK;
                             if (tile == CHANNEL || tile == RIVER) {
                                 sprite = NewSprite(SPRITE_SHIP, (tx << 4) - (48 - 1), ty << 4);
                             }
@@ -2636,7 +2635,7 @@ LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         /* Disaster menu items */
         case IDM_DISASTER_FIRE:
             if (!disastersDisabled) {
-                makeFire(SimRandom(WORLD_X), SimRandom(WORLD_Y));
+                MakeFire();
                 addGameLog("Fire disaster manually triggered");
             } else {
                 addGameLog("Disasters are disabled - cannot trigger fire");
@@ -2645,7 +2644,7 @@ LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             
         case IDM_DISASTER_FLOOD:
             if (!disastersDisabled) {
-                makeFlood();
+                MakeFlood();
                 addGameLog("Flood disaster manually triggered");
             } else {
                 addGameLog("Disasters are disabled - cannot trigger flood");
@@ -2654,7 +2653,7 @@ LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             
         case IDM_DISASTER_TORNADO:
             if (!disastersDisabled) {
-                makeTornado();
+                MakeTornado();
                 addGameLog("Tornado disaster manually triggered");
             } else {
                 addGameLog("Disasters are disabled - cannot trigger tornado");
@@ -2663,7 +2662,7 @@ LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             
         case IDM_DISASTER_EARTHQUAKE:
             if (!disastersDisabled) {
-                doEarthquake();
+                MakeEarthquake();
                 addGameLog("Earthquake disaster manually triggered");
             } else {
                 addGameLog("Disasters are disabled - cannot trigger earthquake");
@@ -2672,7 +2671,7 @@ LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             
         case IDM_DISASTER_MONSTER:
             if (!disastersDisabled) {
-                makeMonster();
+                MakeMonster();
                 addGameLog("Monster disaster manually triggered");
             } else {
                 addGameLog("Disasters are disabled - cannot trigger monster");
@@ -2681,7 +2680,7 @@ LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             
         case IDM_DISASTER_MELTDOWN:
             if (!disastersDisabled) {
-                makeMeltdown();
+                MakeMeltdown();
                 addGameLog("Nuclear meltdown disaster manually triggered");
             } else {
                 addGameLog("Disasters are disabled - cannot trigger meltdown");
@@ -2710,7 +2709,7 @@ LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     /* Extinguish all existing fires */
                     for (y = 0; y < WORLD_Y; y++) {
                         for (x = 0; x < WORLD_X; x++) {
-                            tile = Map[y][x] & LOMASK;
+                            tile = Map[x][y] & LOMASK;
                             if (tile >= TILE_FIRE && tile <= TILE_LASTFIRE) {
                                 setMapTile(x, y, TILE_RUBBLE, BULLBIT, TILE_SET_REPLACE, "extinguish-fire");
                                 firesExtinguished++;
@@ -2955,7 +2954,7 @@ LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         if (tileDebugEnabled) {
             ScreenToMap(xPos, yPos, &mapX, &mapY, xOffset, yOffset);
             if (mapX >= 0 && mapX < WORLD_X && mapY >= 0 && mapY < WORLD_Y) {
-                short tileValue = Map[mapY][mapX];
+                short tileValue = Map[mapX][mapY];
                 short baseTile = tileValue & LOMASK;
                 short flags = tileValue & ~LOMASK;
                 char flagStr[128];
@@ -3887,7 +3886,7 @@ int loadFile(char *filename) {
         PolluteRamp = MiscHis[11];
         LVAverage = MiscHis[12];
         CrimeAverage = MiscHis[13];
-        PollutionAverage = MiscHis[14];
+        PolluteAverage = MiscHis[14];
         GameLevel = MiscHis[15];
         CityClass = MiscHis[16];
         CityScore = MiscHis[17];
@@ -3895,7 +3894,7 @@ int loadFile(char *filename) {
         AutoBulldoze = MiscHis[52];
         AutoBudget = MiscHis[53];
         AutoGo = MiscHis[54];
-        TaxRate = MiscHis[56];
+        CityTax = MiscHis[56];
         SimSpeed = MiscHis[57];
         
         /* Extract funding percentages from fixed-point values */
@@ -3912,8 +3911,8 @@ int loadFile(char *filename) {
         if (CityTime < 0) {
             CityTime = 0;
         }
-        if (TaxRate < 0 || TaxRate > 20) {
-            TaxRate = 7;
+        if (CityTax < 0 || CityTax > 20) {
+            CityTax = 7;
         }
         if (SimSpeed < 0 || SimSpeed > 3) {
             SimSpeed = 3;
@@ -3988,7 +3987,7 @@ int saveFile(char *filename) {
     MiscHis[11] = PolluteRamp;
     MiscHis[12] = LVAverage;
     MiscHis[13] = CrimeAverage;
-    MiscHis[14] = PollutionAverage;
+    MiscHis[14] = PolluteAverage;
     MiscHis[15] = GameLevel;
     MiscHis[16] = CityClass;
     MiscHis[17] = CityScore;
@@ -3997,7 +3996,7 @@ int saveFile(char *filename) {
     MiscHis[53] = AutoBudget;
     MiscHis[54] = AutoGo;
     MiscHis[55] = 1;
-    MiscHis[56] = TaxRate;
+    MiscHis[56] = CityTax;
     MiscHis[57] = SimSpeed;
 
     /* Store funding percentages as fixed-point values */
@@ -4173,7 +4172,7 @@ int testSaveLoad(void) {
     short originalMiscHis[MISCHISTLEN / 2];
     QUAD originalTotalFunds;
     int originalCityTime;
-    int originalTaxRate;
+    int originalCityTax;
     int x, y, i;
     int errorsFound;
 
@@ -4183,7 +4182,7 @@ int testSaveLoad(void) {
     /* Save original data for comparison */
     originalTotalFunds = TotalFunds;
     originalCityTime = CityTime;
-    originalTaxRate = TaxRate;
+    originalCityTax = CityTax;
     
     for (x = 0; x < WORLD_X; x++) {
         for (y = 0; y < WORLD_Y; y++) {
@@ -4218,7 +4217,7 @@ int testSaveLoad(void) {
     /* Modify some data to ensure we're actually loading from file */
     TotalFunds = 12345;
     CityTime = 99999;
-    TaxRate = 15;
+    CityTax = 15;
     setMapTile(0, 0, 999, 0, TILE_SET_REPLACE, "test");
     ResHis[0] = 888;
     
@@ -4241,8 +4240,8 @@ int testSaveLoad(void) {
         errorsFound++;
     }
     
-    if (TaxRate != originalTaxRate) {
-        addGameLog("ERROR: TaxRate mismatch - expected %d, got %d", originalTaxRate, TaxRate);
+    if (CityTax != originalCityTax) {
+        addGameLog("ERROR: CityTax mismatch - expected %d, got %d", originalCityTax, CityTax);
         errorsFound++;
     }
     
@@ -4281,13 +4280,8 @@ int testSaveLoad(void) {
 }
 
 /* External function declarations */
-extern int calcResPop(int zone);     /* Calculate residential zone population - from zone.c */
-extern int calcComPop(int zone);     /* Calculate commercial zone population - from zone.c */
-extern int calcIndPop(int zone);     /* Calculate industrial zone population - from zone.c */
-extern void ClearCensus(void);       /* Reset census counters - from simulation.c */
-extern void CityEvaluation(void);    /* Update city evaluation - from evaluation.c */
-extern void TakeCensus(void);        /* Take a census - from simulation.c */
-extern void CountSpecialTiles(void); /* Count special buildings - from evaluation.c */
+extern int WinWinCityEvaluation();
+extern int CountSpecialTiles();
 
 /* Force a census calculation of the entire map */
 void ForceFullCensus(void) {
@@ -4301,7 +4295,7 @@ void ForceFullCensus(void) {
     /* Scan entire map to count populations */
     for (y = 0; y < WORLD_Y; y++) {
         for (x = 0; x < WORLD_X; x++) {
-            tile = Map[y][x];
+            tile = Map[x][y];
 
             /* Check if this is a zone center */
             if (tile & ZONEBIT) {
@@ -4369,7 +4363,7 @@ void ForceFullCensus(void) {
     CountSpecialTiles();
 
     /* Update the city evaluation based on the new population */
-    CityEvaluation();
+    WinCityEvaluation();
 
     /* Take census to update history graphs */
     TakeCensus();
@@ -4809,7 +4803,7 @@ void drawTile(HDC hdc, int x, int y, short tileValue) {
             (tileBase >= RAILBASE && tileBase <= LASTRAIL))
         {
             Get the traffic density for this location
-            trafficLevel = TrfDensity[y/2][x/2];
+            trafficLevel = TrfDensity[x/2][y/2];
 
             Only display if there's significant traffic
             if (trafficLevel > 40) {
@@ -4901,7 +4895,7 @@ void drawCity(HDC hdc) {
             screenX = x * TILE_SIZE - xOffset;
             screenY = y * TILE_SIZE - yOffset;
 
-            drawTile(hdc, screenX, screenY, Map[y][x]);
+            drawTile(hdc, screenX, screenY, Map[x][y]);
 
             /* If power overlay is enabled, show power status with a transparent color overlay */
             if (powerOverlayEnabled) {
@@ -4926,10 +4920,10 @@ void drawCity(HDC hdc) {
                 tileRect.bottom = screenY + TILE_SIZE;
 
                 /* Skip power plants themselves */
-                if ((Map[y][x] & LOMASK) != POWERPLANT && (Map[y][x] & LOMASK) != NUCLEAR) {
+                if ((Map[x][y] & LOMASK) != POWERPLANT && (Map[x][y] & LOMASK) != NUCLEAR) {
                     /* Show power status - use cached brushes */
-                    if (Map[y][x] & ZONEBIT) {
-                        if (Map[y][x] & POWERBIT) {
+                    if (Map[x][y] & ZONEBIT) {
+                        if (Map[x][y] & POWERBIT) {
                             /* Powered zones - bright green border */
                             FrameRect(hdc, &tileRect, hBrushPoweredZone);
                             /* Add a small green power indicator in the corner */
@@ -4944,10 +4938,10 @@ void drawCity(HDC hdc) {
                             MoveToEx(hdc, tileRect.left + 6, tileRect.top + 2, NULL);
                             LineTo(hdc, tileRect.left + 2, tileRect.top + 6);
                         }
-                    } else if (Map[y][x] & POWERBIT) {
+                    } else if (Map[x][y] & POWERBIT) {
                         /* Show power conducting elements (power lines, roads, etc.) clearly */
-                        if ((Map[y][x] & LOMASK) >= POWERBASE &&
-                            (Map[y][x] & LOMASK) < POWERBASE + 12) {
+                        if ((Map[x][y] & LOMASK) >= POWERBASE &&
+                            (Map[x][y] & LOMASK) < POWERBASE + 12) {
                             /* Power lines - make them bright */
                             HPEN hOldPen = SelectObject(hdc, hPenPoweredLine);
                             /* Draw a cross through the tile to indicate power flow */
@@ -4967,7 +4961,7 @@ void drawCity(HDC hdc) {
                 }
 
                 /* Mark power plants with a yellow circle - use cached pen */
-                if ((Map[y][x] & LOMASK) == POWERPLANT || (Map[y][x] & LOMASK) == NUCLEAR) {
+                if ((Map[x][y] & LOMASK) == POWERPLANT || (Map[x][y] & LOMASK) == NUCLEAR) {
                     static HPEN hPenPowerPlant = NULL;
                     HPEN hOldPen;
                     HBRUSH hOldBrush;
@@ -5171,7 +5165,7 @@ void drawCity(HDC hdc) {
         HBRUSH hOldBrush;
         
         for (i = 0; i < MAX_SPRITES; i++) {
-            SimSprite *sprite = GetSprite(i);
+            SimSprite *sprite = GetSpriteByIndex(i);
             if (sprite != NULL) {
                 int spriteScreenX = sprite->x - xOffset + sprite->x_offset;
                 int spriteScreenY = sprite->y - yOffset + sprite->y_offset;
@@ -5746,7 +5740,7 @@ void createNewMap(HWND hwnd) {
 #define IDC_POLICE_PERCENT 1020
 
 /* Budget window state variables */
-static int tempTaxRate = 7;
+static int tempCityTax = 7;
 static float tempRoadPercent = 1.0f;
 static float tempFirePercent = 1.0f;
 static float tempPolicePercent = 1.0f;
@@ -5754,7 +5748,7 @@ static int tempAutoBudget = 1;
 
 /* Budget dialog procedure */
 BOOL CALLBACK BudgetDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
-    static int tempTaxRate;
+    static int tempCityTax;
     static float tempRoadPercent, tempFirePercent, tempPolicePercent;
     static int tempAutoBudget;
     static int savedRoadTotal, savedFirePop, savedPolicePop; /* Preserve counts during dialog session */
@@ -5776,7 +5770,7 @@ BOOL CALLBACK BudgetDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
         savedPolicePop = PolicePop;
         
         /* Initialize sliders and values */
-        tempTaxRate = TaxRate;
+        tempCityTax = CityTax;
         tempRoadPercent = RoadPercent;
         tempFirePercent = FirePercent;
         tempPolicePercent = PolicePercent;
@@ -5785,8 +5779,8 @@ BOOL CALLBACK BudgetDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
         /* Tax Rate Slider (0-20%) */
         hSlider = GetDlgItem(hDlg, IDC_TAX_RATE_SLIDER);
         SetScrollRange(hSlider, SB_CTL, 0, 20, FALSE);
-        SetScrollPos(hSlider, SB_CTL, tempTaxRate, TRUE);
-        wsprintf(buffer, "Tax Rate: %d%%", tempTaxRate);
+        SetScrollPos(hSlider, SB_CTL, tempCityTax, TRUE);
+        wsprintf(buffer, "Tax Rate: %d%%", tempCityTax);
         SetDlgItemText(hDlg, IDC_TAX_RATE_LABEL, buffer);
         
         /* Road Funding Slider (0-100%) */
@@ -5887,8 +5881,8 @@ BOOL CALLBACK BudgetDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
         SetScrollPos(hSlider, SB_CTL, sliderPos, TRUE);
         
         if (hSlider == GetDlgItem(hDlg, IDC_TAX_RATE_SLIDER)) {
-            tempTaxRate = sliderPos;
-            wsprintf(buffer, "Tax Rate: %d%%", tempTaxRate);
+            tempCityTax = sliderPos;
+            wsprintf(buffer, "Tax Rate: %d%%", tempCityTax);
             SetDlgItemText(hDlg, IDC_TAX_RATE_LABEL, buffer);
         } else if (hSlider == GetDlgItem(hDlg, IDC_ROAD_SLIDER)) {
             tempRoadPercent = sliderPos / 100.0f;
@@ -5916,21 +5910,21 @@ BOOL CALLBACK BudgetDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
             
         case IDC_RESET_BUDGET:
             /* Reset to current values */
-            tempTaxRate = TaxRate;
+            tempCityTax = CityTax;
             tempRoadPercent = RoadPercent;
             tempFirePercent = FirePercent;
             tempPolicePercent = PolicePercent;
             tempAutoBudget = AutoBudget;
             
             /* Update controls */
-            SetScrollPos(GetDlgItem(hDlg, IDC_TAX_RATE_SLIDER), SB_CTL, tempTaxRate, TRUE);
+            SetScrollPos(GetDlgItem(hDlg, IDC_TAX_RATE_SLIDER), SB_CTL, tempCityTax, TRUE);
             SetScrollPos(GetDlgItem(hDlg, IDC_ROAD_SLIDER), SB_CTL, (int)(tempRoadPercent * 100), TRUE);
             SetScrollPos(GetDlgItem(hDlg, IDC_FIRE_SLIDER), SB_CTL, (int)(tempFirePercent * 100), TRUE);
             SetScrollPos(GetDlgItem(hDlg, IDC_POLICE_SLIDER), SB_CTL, (int)(tempPolicePercent * 100), TRUE);
             CheckDlgButton(hDlg, IDC_AUTO_BUDGET, tempAutoBudget ? BST_CHECKED : BST_UNCHECKED);
             
             /* Update labels and display */
-            wsprintf(buffer, "Tax Rate: %d%%", tempTaxRate);
+            wsprintf(buffer, "Tax Rate: %d%%", tempCityTax);
             SetDlgItemText(hDlg, IDC_TAX_RATE_LABEL, buffer);
             wsprintf(buffer, "Road Funding: %d%%", (int)(tempRoadPercent * 100));
             SetDlgItemText(hDlg, IDC_ROAD_LABEL, buffer);
@@ -5944,7 +5938,7 @@ BOOL CALLBACK BudgetDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
             
         case IDOK_BUDGET:
             /* Apply changes */
-            TaxRate = tempTaxRate;
+            CityTax = tempCityTax;
             RoadPercent = tempRoadPercent;
             FirePercent = tempFirePercent;
             PolicePercent = tempPolicePercent;
@@ -5954,7 +5948,7 @@ BOOL CALLBACK BudgetDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
             DoBudget();
             
             addGameLog("Budget updated: Tax %d%%, Road %d%%, Fire %d%%, Police %d%%",
-                      TaxRate, (int)(RoadPercent * 100), (int)(FirePercent * 100), (int)(PolicePercent * 100));
+                      CityTax, (int)(RoadPercent * 100), (int)(FirePercent * 100), (int)(PolicePercent * 100));
             
             EndDialog(hDlg, IDOK);
             return TRUE;
@@ -5985,9 +5979,9 @@ int ShowBudgetWindowAndWait(HWND parent) {
 }
 
 /* Evaluation dialog */
-extern const char *GetProblemText(int problemIndex);
-extern void GetTopProblems(short problems[4]);
-extern int GetProblemVotes(int problemIndex);
+extern const char *GetProblemText();
+extern int GetTopProblems();
+extern int GetProblemVotes();
 extern QUAD GetCityAssessedValue(void);
 
 BOOL CALLBACK EvalDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
@@ -6022,7 +6016,7 @@ BOOL CALLBACK EvalDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
         SetDlgItemText(hDlg, IDC_EVAL_POP, numBuf);
 
         {
-            long delta = (long)(CityPop - PrevCityPop);
+            long delta = (long)deltaCityPop;
             wsprintf(buffer, "%s%s", delta >= 0 ? "+" : "",
                      FormatNumber(delta < 0 ? -delta : delta, numBuf));
             if (delta < 0) {
@@ -6146,7 +6140,7 @@ void TogglePause() {
 }
 
 /* Earthquake screen shake effect functions */
-void startEarthquake(void) {
+void DoEarthQuake(void) {
     shakeNow = 1; /* Start shake effect */
     
     /* Kill any existing earthquake timer */

@@ -34,6 +34,10 @@ typedef long QUAD;
 #define WORLD_W         WORLD_X
 #define WORLD_H         WORLD_Y
 
+#define HWLDX           (WORLD_X >> 1)
+#define HWLDY           (WORLD_Y >> 1)
+#define QWX             (WORLD_X >> 2)
+#define QWY             (WORLD_Y >> 2)
 #define SmX             (WORLD_X >> 3)
 #define SmY             ((WORLD_Y + 7) >> 3)
 
@@ -59,7 +63,9 @@ typedef long QUAD;
 #define POWERBIT        0x8000  /* bit 15, tile has power */
 #define MASKBITS        (~LOMASK)  /* Mask for just the bits */
 #define BNCNBIT         (BURNBIT+CONDBIT)  /* 0x6000 */
-#define ALLBITS         0xFFFF  /* All bits */
+#define COP             SPRITE_HELICOPTER
+#define BLBNCNBIT       (BULLBIT+BURNBIT+CONDBIT)
+#define ALLBITS         (~LOMASK)  /* All status bits (same as MASKBITS) */
 
 /*
  * MICROPOLIS TILESET LAYOUT - 16×16 PIXEL TILES IN A GRID
@@ -309,27 +315,27 @@ typedef long QUAD;
 #define SPEED_FAST       3
 
 /* Structures */
-extern short Map[WORLD_Y][WORLD_X];      /* The main map */
-extern Byte PopDensity[WORLD_Y/2][WORLD_X/2]; /* Population density map (half size) */
-extern Byte TrfDensity[WORLD_Y/2][WORLD_X/2]; /* Traffic density map (half size) */
-extern Byte PollutionMem[WORLD_Y/2][WORLD_X/2]; /* Pollution density map (half size) */
-extern Byte LandValueMem[WORLD_Y/2][WORLD_X/2]; /* Land value map (half size) */
-extern Byte CrimeMem[WORLD_Y/2][WORLD_X/2];   /* Crime map (half size) */
+extern short Map[WORLD_X][WORLD_Y];      /* The main map */
+extern Byte PopDensity[WORLD_X/2][WORLD_Y/2]; /* Population density map (half size) */
+extern Byte TrfDensity[WORLD_X/2][WORLD_Y/2]; /* Traffic density map (half size) */
+extern Byte PollutionMem[WORLD_X/2][WORLD_Y/2]; /* Pollution density map (half size) */
+extern Byte LandValueMem[WORLD_X/2][WORLD_Y/2]; /* Land value map (half size) */
+extern Byte CrimeMem[WORLD_X/2][WORLD_Y/2];   /* Crime map (half size) */
 
 /* Quarter-sized maps */
-extern Byte TerrainMem[WORLD_Y/4][WORLD_X/4];
+extern Byte TerrainMem[WORLD_X/4][WORLD_Y/4];
 
-/* Eighth-sized maps (SmY x SmX) - matches original resolution */
-extern short FireStMap[SmY][SmX];
-extern short FireRate[SmY][SmX];
-extern short PoliceMap[SmY][SmX];
-extern short PoliceMapEffect[SmY][SmX];
-extern short ComRate[SmY][SmX];
+/* Eighth-sized maps (SmX x SmY) - matches original Micropolis resolution */
+extern short FireStMap[SmX][SmY];
+extern short FireRate[SmX][SmY];
+extern short PoliceMap[SmX][SmY];
+extern short PoliceMapEffect[SmX][SmY];
+extern short ComRate[SmX][SmY];
 
 /* Rate of growth memory (1/8th size) */
-#define ROGMEM_Y (WORLD_Y/8+1)
 #define ROGMEM_X (WORLD_X/8)
-extern short RateOGMem[ROGMEM_Y][ROGMEM_X];
+#define ROGMEM_Y (WORLD_Y/8+1)
+extern short RateOGMem[ROGMEM_X][ROGMEM_Y];
 
 /* Historical data for graphs */
 extern short ResHis[HISTLEN/2];      /* Residential history */
@@ -349,11 +355,7 @@ extern int CityTime;     /* City time from 0 to ~32 depending on scenario */
 extern int CityYear;     /* City year from 1900 onwards */
 extern int CityMonth;    /* City month from Jan to Dec */
 extern QUAD TotalFunds;  /* City operating funds */
-extern int TaxRate;      /* City tax rate 0-20 */
-extern int SkipCensusReset; /* Flag to skip census reset after loading a scenario */
-extern int DebugCensusReset; /* Debug counter for tracking census resets */
-extern int PrevResPop;      /* Debug tracker for last residential population value */
-extern int PrevCityPop;     /* Debug tracker for last city population value */
+extern int CityTax;      /* City tax rate 0-20 */
 
 /* Counters */
 extern int DoInitialEval; /* Run CityEvaluation on first pass */
@@ -361,13 +363,19 @@ extern int Scycle;       /* Simulation cycle counter (0-1023) */
 extern int Fcycle;       /* Frame counter (0-1023) */
 extern int Spdcycle;     /* Speed cycle counter (0-1023) */
 
-/* Game evaluation */
-extern int CityYes;        /* Positive sentiment votes */
-extern int CityNo;         /* Negative sentiment votes */
-extern QUAD CityPop;       /* Population assessment */
-extern int CityScore;      /* City score */
-extern int deltaCityScore; /* Score change */
-extern int CityClass;      /* City class (village, town, city, etc.) */
+/* Game evaluation - defined in s_eval.c */
+extern short CityYes;
+extern short CityNo;
+extern QUAD CityPop;
+extern QUAD deltaCityPop;
+extern QUAD CityAssValue;
+extern short CityScore;
+extern short deltaCityScore;
+extern short AverageCityScore;
+extern short CityClass;
+extern short EvalValid;
+extern short ProblemVotes[];
+extern short ProblemOrder[];
 extern int CityLevel;      /* Mayor level (0-5, 0 is worst) */
 extern int CityLevelPop;   /* Population threshold for level */
 extern int GameLevel;      /* Game level (0=easy, 1=medium, 2=hard) */
@@ -395,7 +403,7 @@ extern int IndZPop;
 
 /* Infrastructure counts */
 extern int PwrdZCnt;     /* Number of powered zones */
-extern int UnpwrdZCnt;   /* Number of unpowered zones */
+extern int unPwrdZCnt;   /* Number of unpowered zones */
 extern int RoadTotal;    /* Number of road tiles */
 extern int RailTotal;    /* Number of rail tiles */
 extern int FirePop;      /* Number of burning fire tiles */
@@ -411,8 +419,8 @@ extern int CoalPop;      /* Number of coal plant tiles */
 extern int RoadEffect;   /* Road maintenance effectiveness (a function of funding) */
 extern int PoliceEffect; /* Police effectiveness */
 extern int FireEffect;   /* Fire department effectiveness */
-extern int TrafficAverage; /* Average traffic */
-extern int PollutionAverage; /* Average pollution */
+extern short TrafficAverage;
+extern int PolluteAverage; /* Average pollution */
 extern int CrimeAverage; /* Average crime */
 extern int LVAverage;    /* Average land value */
 
@@ -432,9 +440,17 @@ extern short AvCityTax;
 /* Disasters */
 extern short DisasterEvent; /* Current disaster type (0=none) - defined in scenarios.c */
 extern short DisasterWait;  /* Countdown to next disaster - defined in scenarios.c */
+extern short ScenarioID;
+extern short ScoreType;
+extern short ScoreWait;
 extern int DisasterLevel;   /* Disaster level */
 extern int DisastersEnabled; /* Enable/disable disasters (0=disabled, 1=enabled) */
-extern int FloodCnt;        /* Flood countdown timer */
+extern short FloodCnt;
+extern short ShakeNow;
+extern short FloodX, FloodY;
+extern short NewPower;
+int DoDisasters();
+int DoFlood();
 extern int NeedHosp;        /* Hospital need: 1=need, 0=ok, -1=excess */
 extern int NeedChurch;      /* Church need: 1=need, 0=ok, -1=excess */
 extern int HospPop;         /* Hospital population count */
@@ -452,40 +468,31 @@ void DoSimInit(void);
 void SimFrame(void);
 void Simulate(int mod16);
 void DoTimeStuff(void);
-void SetValves(void);
-void ClearCensus(void);
-void TakeCensus(void);
 void MapScan(int x1, int x2, int y1, int y2);
-int GetPValue(int x, int y);
+
+/* Census/valve functions - sim/s_simscan.c (original Micropolis from s_sim.c) */
+SetValves();
+ClearCensus();
+TakeCensus();
+Take2Census();
+extern short TaxFlag;
+extern short InitSimLoad;
+extern short ResHisMax, ComHisMax, IndHisMax;
+extern short Graph10Max, Graph120Max;
+
+/* Init functions - sim/s_simscan.c (original Micropolis from s_sim.c) */
+DoNilPower();
+InitSimMemory();
+SimLoadInit();
 int TestBounds(int x, int y);
 
-/* Unified population calculation functions */
 QUAD CalculateCityPopulation(int resPop, int comPop, int indPop);
 int CalculateTotalPopulation(int resPop, int comPop, int indPop);
+void SetTileZone(int x, int y, int tile, int isZone);
 
-/* Zone type constants for population management */
-#define ZONE_TYPE_RESIDENTIAL   0
-#define ZONE_TYPE_COMMERCIAL    1  
-#define ZONE_TYPE_INDUSTRIAL    2
-
-/* Budget type constants */
 #define BUDGET_TYPE_ROAD        0
 #define BUDGET_TYPE_POLICE      1
 #define BUDGET_TYPE_FIRE        2
-
-/* Unified population management functions */
-void AddToZonePopulation(int zoneType, int amount);
-void ResetCensusCounters(void);
-
-/* Unified power management functions */
-void SetPowerStatusOnly(int x, int y, int powered);  /* Set power without updating zone counts */
-void UpdatePowerStatus(int x, int y, int powered);   /* Set power and update zone counts */
-
-/* Higher-level tile setting helper functions */
-void SetTileWithPower(int x, int y, int tile, int powered);
-void SetTileZone(int x, int y, int tile, int isZone);
-void UpgradeTile(int x, int y, int newTile);
-void SetRubbleTile(int x, int y);
 void SetSimulationSpeed(HWND hwnd, int speed);
 void CleanupSimTimer(HWND hwnd);
 void SetGameSpeed(int speed);
@@ -494,48 +501,71 @@ void PauseSimulation(void);
 void ResumeSimulation(void);
 void TogglePause(void);
 
-/* Functions implemented in zone.c */
-void DoZone(int Xloc, int Yloc, int pos);
-int calcResPop(int zone);   /* Calculate residential zone population */
-int DoFreePop(int x, int y); /* Count free houses around FREEZ zone */
-int calcComPop(int zone);   /* Calculate commercial zone population */
-int calcIndPop(int zone);   /* Calculate industrial zone population */
+/* Functions implemented in sim/s_zone.c (original Micropolis) */
+DoZone();
+SetZPower();
+int RZPop(int Ch9);
+int CZPop(int Ch9);
+int IZPop(int Ch9);
 
-/* Power-related variables and functions - power.c */
-extern int SMapX;             /* Current map X position for power scan */
-extern int SMapY;             /* Current map Y position for power scan */
-void CountPowerPlants(void);
-void QueuePowerPlant(int x, int y);
-void FindPowerPlants(void);
-void DoPowerScan(void);
+/* Functions implemented in sim/s_spzone.c (original Micropolis) */
+DoSPZone(short PwrOn);
 
-/* Traffic-related functions - traffic.c */
-int MakeTraffic(int zoneType);
-int FindPRoad(void);
-void DecTrafficMap(void);
-void DecROGMem(void);
-void CalcTrafficAverage(void);
+/* Functions implemented in sim/s_zone.c (population calculations) */
+int RZPop(int Ch9);
+int CZPop(int Ch9);
+int IZPop(int Ch9);
+
+/* Power stack - sim/s_power.c (original Micropolis) */
+PushPowerStack();
+DoPowerScan();
+extern int PowerStackNum;
+
+/* Power-related variables and functions */
+extern int SMapX;
+extern int SMapY;
+extern short CChr;
+extern short CChr9;
+
+/* Traffic-related functions - s_traf.c / traffic.c */
+int MakeTraf();
+int FindPRoad();
+int MoveMapSim(short MDir);
+
+/* Scanning functions - sim/s_simscan.c (original Micropolis from s_sim.c) */
+DecTrafficMem();
+DecROGMem();
+DoRoad();
+DoRail();
+DoRadTile();
+DoBridge();
+DoFire();
+FireZone(int Xloc, int Yloc, int ch);
+RepairZone(short ZCent, short zsize);
+int GetBoatDis();
 void RandomlySeedRand(void); /* Initialize random number generator */
 int SimRandom(int range);  /* Random number function used by traffic system */
 
-/* Scanner-related variables and functions - scanner.c */
-extern short CCx, CCy;
-void FireAnalysis(void);    /* Fire station effect analysis */
-void PopDenScan(void);      /* Population density scan */
-void PTLScan(void);         /* Pollution/terrain/land value scan */
-void CrimeScan(void);       /* Crime level scan */
+/* Scanner-related variables and functions - s_scan.c */
+extern short CCx, CCy, CCx2, CCy2;
+extern short PolMaxX, PolMaxY;
+extern short CrimeMaxX, CrimeMaxY;
+int FireAnalysis();
+int PopDenScan();
+int PTLScan();
+int CrimeScan();
 
-/* Evaluation-related functions - evaluation.c */
-void EvalInit(void);           /* Initialize evaluation system */
-void CityEvaluation(void);     /* Perform city evaluation */
-void CountSpecialTiles(void);  /* Count special building types */
-const char* GetProblemText(int problemIndex);  /* Get problem description */
-const char* GetCityClassName(void);            /* Get city class name */
-void GetTopProblems(short problems[4]);        /* Get top problems list */
-int GetProblemVotes(int problemIndex);         /* Get problem vote count */
-QUAD GetCityAssessedValue(void);               /* Get city assessed value */
-int IsEvaluationValid(void);                   /* Is evaluation data valid */
-int GetAverageCityScore(void);                 /* Get average city score */
+/* Evaluation-related functions - s_eval.c / eval.c */
+int WinEvalInit();
+int WinCityEvaluation();
+int CountSpecialTiles();
+const char* GetProblemText();
+const char* GetCityClassName();
+int GetTopProblems();
+int GetProblemVotes();
+QUAD GetCityAssessedValue();
+int IsEvaluationValid();
+int GetAverageCityScore();
 
 /* Budget-related variables and functions - budget.c */
 extern float RoadPercent;      /* Road funding percentage (0.0-1.0) */
@@ -553,7 +583,9 @@ extern int AutoBulldoze;       /* Auto-bulldoze enabled flag */
 extern int AutoGo;             /* Auto-scroll to event locations */
 
 void InitBudget(void);         /* Initialize budget system */
-void CollectTax(void);         /* Calculate and collect taxes */
+CollectTax();
+UpdateFundEffects();
+SetCommonInits();
 void Spend(QUAD amount);       /* Spend funds (negative = income) */
 void DoBudget(void);           /* Process budget allocation */
 QUAD GetTaxIncome(void);       /* Get current tax income */
@@ -571,17 +603,24 @@ int loadScenario(int scenarioId);        /* Load a scenario by ID */
 void scenarioDisaster(void);             /* Process scenario disasters */
 DoScenarioScore(int scoreType);          /* Evaluate scenario victory conditions */
 
-/* Disaster functions (disasters.c) */
-void doEarthquake(void);                 /* Create an earthquake */
-void makeFlood(void);                    /* Create a flood */
-void makeFire(int x, int y);             /* Start a fire */
-void makeMonster(void);                  /* Create a monster */
-void makeTornado(void);                  /* Create a tornado */
-void makeExplosion(int x, int y);        /* Create an explosion */
-void makeMeltdown(void);                 /* Create a nuclear meltdown */
+/* Disaster functions - s_disast.c (originals) / disastr.c (wrappers) */
+int MakeEarthquake();
+int MakeFlood();
+int MakeFire();
+int MakeMeltdown();
+int SetFire();
+int Vunerable();
+int MakeMonster();
+int MakeTornado();
+int MakeExplosion();
+int DoMeltdown();
+int DropFireBombs();
+int BridgeSendMes();
+extern short CrashX, CrashY;
+int BridgeSendMes();
 
 /* Earthquake screen shake effects (main.c) */
-void startEarthquake(void);              /* Start earthquake screen shake */
+void DoEarthQuake(void);              /* Start earthquake screen shake */
 void stopEarthquake(void);               /* Stop earthquake screen shake */
 
 /* File I/O functions (main.c) */
@@ -595,7 +634,7 @@ int ShowBudgetWindowAndWait(HWND parent);  /* Show budget window during budget c
 void AnimateTiles(void);            /* Process animations for the entire map */
 void SetAnimationEnabled(int enabled);  /* Enable or disable animations */
 int GetAnimationEnabled(void);      /* Get animation enabled status */
-void SetSmoke(int x, int y);        /* Set smoke animation for coal plants */
+void DoSetSmoke(int x, int y);        /* Set smoke animation for coal plants */
 void UpdateFire(int x, int y);      /* Update fire animations */
 void UpdateNuclearPower(int x, int y);  /* Update nuclear power plant animations */
 void UpdateAirportRadar(int x, int y);  /* Update airport radar animation */

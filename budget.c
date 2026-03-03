@@ -45,38 +45,11 @@ void InitBudget(void) {
     TaxFund = 0;
 
     /* Log budget initialization */
-    addDebugLog("Budget system initialized: Tax rate %d%%", TaxRate);
+    addDebugLog("Budget system initialized: Tax rate %d%%", CityTax);
     addDebugLog("Starting funds: $%d", (int)TotalFunds);
 }
 
-/* Tax collection function - called yearly */
-void CollectTax(void) {
-    /* No income initially */
-    TaxFund = 0;
-
-    CashFlow = 0;
-
-    {
-        short z;
-        z = AvCityTax / 48;
-        AvCityTax = 0;
-    }
-
-    RoadFund = (QUAD)((RoadTotal + (RailTotal * 2)) * DifficultyMaintenanceCost[GameLevel]);
-    FireFund = FireStPop * 100;
-    PoliceFund = PolicePop * 100;
-
-    TaxFund = (QUAD)(((QUAD)TotalPop * LVAverage / 120) * TaxRate * DifficultyTaxEfficiency[GameLevel]);
-
-    if (TotalPop > 0) {
-        CashFlow = (short)(TaxFund - (PoliceFund + FireFund + RoadFund));
-        DoBudget();
-    } else {
-        RoadEffect = 32;
-        PoliceEffect = 1000;
-        FireEffect = 1000;
-    }
-}
+/* CollectTax now in sim/s_simscan.c (original Micropolis) */
 
 /* Spend money (negative means income) */
 void Spend(QUAD amount) {

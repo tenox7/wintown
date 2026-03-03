@@ -61,8 +61,8 @@ void UpdateToolbar(void);
 
 /* Individual tool functions */
 int DoBulldozer(int mapX, int mapY);
-int DoRoad(int mapX, int mapY);
-int DoRail(int mapX, int mapY);
+int DoRoadTool(int mapX, int mapY);
+int DoRailTool(int mapX, int mapY);
 int DoWire(int mapX, int mapY);
 int DoPark(int mapX, int mapY);
 int DoResidential(int mapX, int mapY);

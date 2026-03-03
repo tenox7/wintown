@@ -38,7 +38,7 @@ void AnimateTiles(void) {
     /* Scan the entire map for tiles with the ANIMBIT set */
     for (y = 0; y < WORLD_Y; y++) {
         for (x = 0; x < WORLD_X; x++) {
-            tilevalue = Map[y][x];
+            tilevalue = Map[x][y];
 
             /* Only process tiles with the animation bit set */
             if (tilevalue & ANIMBIT) {
@@ -95,7 +95,7 @@ int GetAnimationEnabled(void) {
 }
 
 /* Add smoke animation to industrial zones and coal power plants */
-void SetSmoke(int x, int y) {
+void DoSetSmoke(int x, int y) {
     /* Tables for industrial smoke positions and animations */
     static short AniThis[8] = { 1, 0, 1, 1, 0, 0, 1, 1 };
     static short DX1[8] = { -1, 0, 1, 0, 0, 0, 0, 1 };
@@ -112,8 +112,8 @@ void SetSmoke(int x, int y) {
         return;
     }
 
-    tile = Map[y][x] & LOMASK;
-    
+    tile = Map[x][y] & LOMASK;
+
     /* Check if this is a power plant - handle separately */
     if (tile == POWERPLANT) {
         isPowerPlant = 1;
@@ -125,9 +125,9 @@ void SetSmoke(int x, int y) {
             /* Make sure the smoke position is valid */
             if (BOUNDS_CHECK(xx, yy)) {
                 /* Cache tile value to avoid multiple lookups - Issue #18 optimization */
-                short currentTile = Map[yy][xx];
+                short currentTile = Map[xx][yy];
                 short baseTile = currentTile & LOMASK;
-                
+
                 /* Only set the tile if it doesn't already have the animation bit set
                    or if it's not already a smoke tile. This avoids resetting the
                    animation sequence and makes it flow better. */
@@ -137,16 +137,16 @@ void SetSmoke(int x, int y) {
                     /* Set the appropriate smoke tile with animation */
                     switch (i) {
                     case 0:
-                        setMapTile(xx, yy, COALSMOKE1, ANIMBIT | CONDBIT | POWERBIT | BURNBIT, TILE_SET_REPLACE, "SetSmoke-coal1");
+                        setMapTile(xx, yy, COALSMOKE1, ANIMBIT | CONDBIT | POWERBIT | BURNBIT, TILE_SET_REPLACE, "DoSetSmoke-coal1");
                         break;
                     case 1:
-                        setMapTile(xx, yy, COALSMOKE2, ANIMBIT | CONDBIT | POWERBIT | BURNBIT, TILE_SET_REPLACE, "SetSmoke-coal2");
+                        setMapTile(xx, yy, COALSMOKE2, ANIMBIT | CONDBIT | POWERBIT | BURNBIT, TILE_SET_REPLACE, "DoSetSmoke-coal2");
                         break;
                     case 2:
-                        setMapTile(xx, yy, COALSMOKE3, ANIMBIT | CONDBIT | POWERBIT | BURNBIT, TILE_SET_REPLACE, "SetSmoke-coal3");
+                        setMapTile(xx, yy, COALSMOKE3, ANIMBIT | CONDBIT | POWERBIT | BURNBIT, TILE_SET_REPLACE, "DoSetSmoke-coal3");
                         break;
                     case 3:
-                        setMapTile(xx, yy, COALSMOKE4, ANIMBIT | CONDBIT | POWERBIT | BURNBIT, TILE_SET_REPLACE, "SetSmoke-coal4");
+                        setMapTile(xx, yy, COALSMOKE4, ANIMBIT | CONDBIT | POWERBIT | BURNBIT, TILE_SET_REPLACE, "DoSetSmoke-coal4");
                         break;
                     }
                 }
@@ -161,10 +161,10 @@ void SetSmoke(int x, int y) {
     }
     
     /* Only animate powered zones */
-    if (!(Map[y][x] & POWERBIT)) {
+    if (!(Map[x][y] & POWERBIT)) {
         return;
     }
-    
+
     /* Calculate which industrial building type (0-7) */
     z = (tile - INDBASE) >> 3;
     z = z & 7;
@@ -176,9 +176,9 @@ void SetSmoke(int x, int y) {
         
         if (BOUNDS_CHECK(xx, yy)) {
             /* Only animate if it's the right base tile */
-            if ((Map[yy][xx] & LOMASK) == AniTabC[z]) {
+            if ((Map[xx][yy] & LOMASK) == AniTabC[z]) {
                 /* Set the animated smoke tile */
-                setMapTile(xx, yy, SMOKEBASE + AniTabA[z], ANIMBIT | CONDBIT | POWERBIT | BURNBIT, TILE_SET_REPLACE, "SetSmoke-industrial");
+                setMapTile(xx, yy, SMOKEBASE + AniTabA[z], ANIMBIT | CONDBIT | POWERBIT | BURNBIT, TILE_SET_REPLACE, "DoSetSmoke-industrial");
             }
         }
     }
@@ -197,12 +197,12 @@ static void DoIndustrialSmoke(int x, int y) {
     }
 
     /* Check if this industrial building has power */
-    if (!(Map[y][x] & POWERBIT)) {
+    if (!(Map[x][y] & POWERBIT)) {
         return;
     }
 
     /* Get the base tile value */
-    baseTile = Map[y][x] & LOMASK;
+    baseTile = Map[x][y] & LOMASK;
 
     /* Look for industrial buildings that need smoke */
     for (i = 0; i < 8; i++) {
@@ -220,9 +220,9 @@ static void DoIndustrialSmoke(int x, int y) {
             /* Make sure the smoke position is valid */
             if (BOUNDS_CHECK(xx, yy)) {
                 /* Cache tile value to avoid multiple lookups - Issue #18 optimization */
-                short currentTile = Map[yy][xx];
+                short currentTile = Map[xx][yy];
                 short baseTile = currentTile & LOMASK;
-                
+
                 /* Choose the appropriate smoke stack tile */
                 switch (i) {
                 case 0: smokeTile = INDSMOKE1; break;
@@ -256,7 +256,7 @@ static void DoStadiumAnimation(int x, int y) {
     }
 
     /* Check if this is a stadium with power */
-    if ((Map[y][x] & LOMASK) != STADIUM || !(Map[y][x] & POWERBIT)) {
+    if ((Map[x][y] & LOMASK) != STADIUM || !(Map[x][y] & POWERBIT)) {
         return;
     }
 
@@ -285,15 +285,15 @@ static void DoStadiumAnimation(int x, int y) {
         centerY = y;
 
         if (centerX >= 0 && centerX < WORLD_X && centerY >= 0 && centerY < WORLD_Y) {
-            short tileValue = Map[centerY][centerX] & LOMASK;
-            
+            short tileValue = Map[centerX][centerY] & LOMASK;
+
             /* If we find football game tiles, revert them */
             if (tileValue >= FOOTBALLGAME1 && tileValue <= FOOTBALLGAME1 + 16) {
                 setMapTile(centerX, centerY, 0, ANIMBIT, TILE_CLEAR_FLAGS, "DoStadiumAnimation-revert1");
             }
             
             if (centerY+1 >= 0 && centerY+1 < WORLD_Y) {
-                tileValue = Map[centerY+1][centerX] & LOMASK;
+                tileValue = Map[centerX][centerY+1] & LOMASK;
                 
                 if (tileValue >= FOOTBALLGAME2 && tileValue <= FOOTBALLGAME2 + 16) {
                     setMapTile(centerX, centerY+1, 0, ANIMBIT, TILE_CLEAR_FLAGS, "DoStadiumAnimation-revert2");
@@ -311,7 +311,7 @@ void UpdateFire(int x, int y) {
     }
 
     /* Set fire tiles to animate */
-    if ((Map[y][x] & LOMASK) >= FIREBASE && (Map[y][x] & LOMASK) <= (FIREBASE + 7)) {
+    if ((Map[x][y] & LOMASK) >= FIREBASE && (Map[x][y] & LOMASK) <= (FIREBASE + 7)) {
         setMapTile(x, y, 0, ANIMBIT, TILE_SET_FLAGS, "UpdateFire-animate");
     }
 }
@@ -324,7 +324,7 @@ void UpdateNuclearPower(int x, int y) {
     }
 
     /* Set the nuclear core to animate */
-    if ((Map[y][x] & LOMASK) == NUCLEAR) {
+    if ((Map[x][y] & LOMASK) == NUCLEAR) {
         int xx, yy;
 
         xx = x;
@@ -345,7 +345,7 @@ void UpdateAirportRadar(int x, int y) {
     }
 
     /* Check if this is an airport */
-    if ((Map[y][x] & LOMASK) == AIRPORT) {
+    if ((Map[x][y] & LOMASK) == AIRPORT) {
         int xx, yy;
 
         /* Set animation bit on the radar tower tile */
@@ -373,7 +373,7 @@ void UpdateSpecialAnimations(void) {
     for (y = 0; y < WORLD_Y; y++) {
         for (x = 0; x < WORLD_X; x++) {
             /* Cache full tile value to avoid multiple lookups - Issue #18 optimization */
-            short fullTileValue = Map[y][x];
+            short fullTileValue = Map[x][y];
             tileValue = fullTileValue & LOMASK;
             
             /* Only process zone centers to avoid unnecessary work */
@@ -383,7 +383,7 @@ void UpdateSpecialAnimations(void) {
 
             /* Add smoke to power plants */
             if (tileValue == POWERPLANT) {
-                SetSmoke(x, y);
+                DoSetSmoke(x, y);
             }
 
             /* Add smoke to industrial buildings */

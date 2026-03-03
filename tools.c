@@ -97,7 +97,7 @@ extern void addGameLog(const char *format, ...);
 extern HWND hwndMain;
 
 /* External reference to Map array */
-extern short Map[WORLD_Y][WORLD_X];
+extern short Map[WORLD_X][WORLD_Y];
 
 /* 
  * Tile connection tables for road, rail, and wire
@@ -451,146 +451,14 @@ int checkBigZone(short id, int *deltaHPtr, int *deltaVPtr) {
         *deltaVPtr = 1;
         return 4;
     }
-    /* Airport parts (709-744) */
-    else if (id == TILE_AIRPORTBASE) {
-        *deltaHPtr = -2;
-        *deltaVPtr = -2;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 1) {
-        *deltaHPtr = -1;
-        *deltaVPtr = -2;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 2) {
-        *deltaHPtr = 0;
-        *deltaVPtr = -2;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 3) {
-        *deltaHPtr = 1;
-        *deltaVPtr = -2;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 4) {
-        *deltaHPtr = 2;
-        *deltaVPtr = -2;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 5) {
-        *deltaHPtr = 3;
-        *deltaVPtr = -2;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 6) {
-        *deltaHPtr = -2;
-        *deltaVPtr = -1;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 7) {
-        *deltaHPtr = -1;
-        *deltaVPtr = -1;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 8) {
-        *deltaHPtr = 0;
-        *deltaVPtr = -1;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 9) {
-        *deltaHPtr = 1;
-        *deltaVPtr = -1;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 10) {
-        *deltaHPtr = 2;
-        *deltaVPtr = -1;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 11) {
-        *deltaHPtr = 3;
-        *deltaVPtr = -1;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 12) {
-        *deltaHPtr = -2;
-        *deltaVPtr = 0;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 13) {
-        *deltaHPtr = -1;
-        *deltaVPtr = 0;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 14) {
-        *deltaHPtr = 1;
-        *deltaVPtr = 0;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 15) {
-        *deltaHPtr = 2;
-        *deltaVPtr = 0;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 16) {
-        *deltaHPtr = 3;
-        *deltaVPtr = 0;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 17) {
-        *deltaHPtr = -2;
-        *deltaVPtr = 1;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 18) {
-        *deltaHPtr = -1;
-        *deltaVPtr = 1;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 19) {
-        *deltaHPtr = 0;
-        *deltaVPtr = 1;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 20) {
-        *deltaHPtr = 1;
-        *deltaVPtr = 1;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 21) {
-        *deltaHPtr = 2;
-        *deltaVPtr = 1;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 22) {
-        *deltaHPtr = 3;
-        *deltaVPtr = 1;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 23) {
-        *deltaHPtr = -2;
-        *deltaVPtr = 2;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 24) {
-        *deltaHPtr = -1;
-        *deltaVPtr = 2;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 25) {
-        *deltaHPtr = 0;
-        *deltaVPtr = 2;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 26) {
-        *deltaHPtr = 1;
-        *deltaVPtr = 2;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 27) {
-        *deltaHPtr = 2;
-        *deltaVPtr = 2;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 28) {
-        *deltaHPtr = 3;
-        *deltaVPtr = 2;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 29) {
-        *deltaHPtr = -2;
-        *deltaVPtr = 3;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 30) {
-        *deltaHPtr = -1;
-        *deltaVPtr = 3;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 31) {
-        *deltaHPtr = 0;
-        *deltaVPtr = 3;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 32) {
-        *deltaHPtr = 1;
-        *deltaVPtr = 3;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 33) {
-        *deltaHPtr = 2;
-        *deltaVPtr = 3;
-        return 6;
-    } else if (id == TILE_AIRPORTBASE + 34) {
-        *deltaHPtr = 3;
-        *deltaVPtr = 3;
+    /* Airport parts (709-744) - center at offset (1,1) matching original Micropolis */
+    else if (id >= TILE_AIRPORTBASE && id < TILE_AIRPORTBASE + 36 && id != TILE_AIRPORT) {
+        int idx, col, row;
+        idx = id - TILE_AIRPORTBASE;
+        col = idx % 6;
+        row = idx / 6;
+        *deltaHPtr = col - 1;
+        *deltaVPtr = row - 1;
         return 6;
     }
     /* Also handle base tiles */
@@ -626,7 +494,7 @@ void put3x3Rubble(int x, int y) {
         for (xx = x - 1; xx <= x + 1; xx++) {
             if (TestBounds(xx, yy)) {
                 /* Clear the zone bit but preserve other flags */
-                SetTileZone(xx, yy, Map[yy][xx] & LOMASK, 0);
+                SetTileZone(xx, yy, Map[xx][yy] & LOMASK, 0);
             }
         }
     }
@@ -635,7 +503,7 @@ void put3x3Rubble(int x, int y) {
     for (yy = y - 1; yy <= y + 1; yy++) {
         for (xx = x - 1; xx <= x + 1; xx++) {
             if (TestBounds(xx, yy)) {
-                zz = Map[yy][xx] & LOMASK;
+                zz = Map[xx][yy] & LOMASK;
                 if ((zz != RADTILE) && (zz != 0)) {
                     setMapTile(xx, yy, SOMETINYEXP, ANIMBIT | BULLBIT, TILE_SET_REPLACE, "put3x3Rubble-explode");
                 }
@@ -654,7 +522,7 @@ void put4x4Rubble(int x, int y) {
         for (xx = x - 1; xx <= x + 2; xx++) {
             if (TestBounds(xx, yy)) {
                 /* Clear the zone bit but preserve other flags */
-                SetTileZone(xx, yy, Map[yy][xx] & LOMASK, 0);
+                SetTileZone(xx, yy, Map[xx][yy] & LOMASK, 0);
             }
         }
     }
@@ -663,7 +531,7 @@ void put4x4Rubble(int x, int y) {
     for (yy = y - 1; yy <= y + 2; yy++) {
         for (xx = x - 1; xx <= x + 2; xx++) {
             if (TestBounds(xx, yy)) {
-                zz = Map[yy][xx] & LOMASK;
+                zz = Map[xx][yy] & LOMASK;
                 if ((zz != RADTILE) && (zz != 0)) {
                     setMapTile(xx, yy, SOMETINYEXP, ANIMBIT | BULLBIT, TILE_SET_REPLACE, "put4x4Rubble-explode");
                 }
@@ -678,20 +546,19 @@ void put6x6Rubble(int x, int y) {
     short zz;
 
     /* First pass - clear all zone bits to avoid confusion during bulldozing */
-    for (yy = y - 2; yy <= y + 3; yy++) {
-        for (xx = x - 2; xx <= x + 3; xx++) {
+    for (yy = y - 1; yy <= y + 4; yy++) {
+        for (xx = x - 1; xx <= x + 4; xx++) {
             if (TestBounds(xx, yy)) {
-                /* Clear the zone bit but preserve other flags */
-                SetTileZone(xx, yy, Map[yy][xx] & LOMASK, 0);
+                SetTileZone(xx, yy, Map[xx][yy] & LOMASK, 0);
             }
         }
     }
 
     /* Second pass - create the rubble */
-    for (yy = y - 2; yy <= y + 3; yy++) {
-        for (xx = x - 2; xx <= x + 3; xx++) {
+    for (yy = y - 1; yy <= y + 4; yy++) {
+        for (xx = x - 1; xx <= x + 4; xx++) {
             if (TestBounds(xx, yy)) {
-                zz = Map[yy][xx] & LOMASK;
+                zz = Map[xx][yy] & LOMASK;
                 if ((zz != RADTILE) && (zz != 0)) {
                     setMapTile(xx, yy, SOMETINYEXP, ANIMBIT | BULLBIT, TILE_SET_REPLACE, "put6x6Rubble-explode");
                 }
@@ -827,7 +694,7 @@ int LayRoad(int x, int y, short *tilePtr) {
         }
 
         if (x < WORLD_X - 1) {
-            nb = NormalizeRoad((short)(Map[y][x + 1] & LOMASK));
+            nb = NormalizeRoad((short)(Map[x + 1][y] & LOMASK));
             if (nb == VRAILROAD || nb == HBRIDGE ||
                 (nb >= ROADS && nb <= HROADPOWER)) {
                 Spend(cost);
@@ -836,7 +703,7 @@ int LayRoad(int x, int y, short *tilePtr) {
             }
         }
         if (x > 0) {
-            nb = NormalizeRoad((short)(Map[y][x - 1] & LOMASK));
+            nb = NormalizeRoad((short)(Map[x - 1][y] & LOMASK));
             if (nb == VRAILROAD || nb == HBRIDGE ||
                 (nb >= ROADS && nb <= INTERSECTION)) {
                 Spend(cost);
@@ -845,7 +712,7 @@ int LayRoad(int x, int y, short *tilePtr) {
             }
         }
         if (y < WORLD_Y - 1) {
-            nb = NormalizeRoad((short)(Map[y + 1][x] & LOMASK));
+            nb = NormalizeRoad((short)(Map[x][y + 1] & LOMASK));
             if (nb == HRAILROAD || nb == VROADPOWER ||
                 (nb >= VBRIDGE && nb <= INTERSECTION)) {
                 Spend(cost);
@@ -854,7 +721,7 @@ int LayRoad(int x, int y, short *tilePtr) {
             }
         }
         if (y > 0) {
-            nb = NormalizeRoad((short)(Map[y - 1][x] & LOMASK));
+            nb = NormalizeRoad((short)(Map[x][y - 1] & LOMASK));
             if (nb == HRAILROAD || nb == VROADPOWER ||
                 (nb >= VBRIDGE && nb <= INTERSECTION)) {
                 Spend(cost);
@@ -928,7 +795,7 @@ int LayRail(int x, int y, short *tilePtr) {
         }
 
         if (x < WORLD_X - 1) {
-            nb = NormalizeRoad((short)(Map[y][x + 1] & LOMASK));
+            nb = NormalizeRoad((short)(Map[x + 1][y] & LOMASK));
             if (nb == RAILVPOWERH || nb == HRAIL ||
                 (nb >= LHRAIL && nb <= HRAILROAD)) {
                 Spend(cost);
@@ -937,7 +804,7 @@ int LayRail(int x, int y, short *tilePtr) {
             }
         }
         if (x > 0) {
-            nb = NormalizeRoad((short)(Map[y][x - 1] & LOMASK));
+            nb = NormalizeRoad((short)(Map[x - 1][y] & LOMASK));
             if (nb == RAILVPOWERH || nb == HRAIL ||
                 (nb > VRAIL && nb < VRAILROAD)) {
                 Spend(cost);
@@ -946,7 +813,7 @@ int LayRail(int x, int y, short *tilePtr) {
             }
         }
         if (y < WORLD_Y - 1) {
-            nb = NormalizeRoad((short)(Map[y + 1][x] & LOMASK));
+            nb = NormalizeRoad((short)(Map[x][y + 1] & LOMASK));
             if (nb == RAILHPOWERV || nb == VRAILROAD ||
                 (nb > HRAIL && nb < HRAILROAD)) {
                 Spend(cost);
@@ -955,7 +822,7 @@ int LayRail(int x, int y, short *tilePtr) {
             }
         }
         if (y > 0) {
-            nb = NormalizeRoad((short)(Map[y - 1][x] & LOMASK));
+            nb = NormalizeRoad((short)(Map[x][y - 1] & LOMASK));
             if (nb == RAILHPOWERV || nb == VRAILROAD ||
                 (nb > HRAIL && nb < HRAILROAD)) {
                 Spend(cost);
@@ -1036,34 +903,34 @@ int LayWire(int x, int y, short *tilePtr) {
         
         /* Build the connection mask manually for underwater power lines */
         /* Check North */
-        if (y > 0 && ((Map[y-1][x] & CONDBIT) || 
-            ((Map[y-1][x] & LOMASK) >= POWERBASE && (Map[y-1][x] & LOMASK) <= LASTPOWER))) {
+        if (y > 0 && ((Map[x][y-1] & CONDBIT) ||
+            ((Map[x][y-1] & LOMASK) >= POWERBASE && (Map[x][y-1] & LOMASK) <= LASTPOWER))) {
             connectMask |= 1;
         }
-        
+
         /* Check East */
-        if (x < WORLD_X - 1 && ((Map[y][x+1] & CONDBIT) || 
-            ((Map[y][x+1] & LOMASK) >= POWERBASE && (Map[y][x+1] & LOMASK) <= LASTPOWER))) {
+        if (x < WORLD_X - 1 && ((Map[x+1][y] & CONDBIT) ||
+            ((Map[x+1][y] & LOMASK) >= POWERBASE && (Map[x+1][y] & LOMASK) <= LASTPOWER))) {
             connectMask |= 2;
         }
-        
+
         /* Check South */
-        if (y < WORLD_Y - 1 && ((Map[y+1][x] & CONDBIT) || 
-            ((Map[y+1][x] & LOMASK) >= POWERBASE && (Map[y+1][x] & LOMASK) <= LASTPOWER))) {
+        if (y < WORLD_Y - 1 && ((Map[x][y+1] & CONDBIT) ||
+            ((Map[x][y+1] & LOMASK) >= POWERBASE && (Map[x][y+1] & LOMASK) <= LASTPOWER))) {
             connectMask |= 4;
         }
-        
+
         /* Check West */
-        if (x > 0 && ((Map[y][x-1] & CONDBIT) || 
-            ((Map[y][x-1] & LOMASK) >= POWERBASE && (Map[y][x-1] & LOMASK) <= LASTPOWER))) {
+        if (x > 0 && ((Map[x-1][y] & CONDBIT) ||
+            ((Map[x-1][y] & LOMASK) >= POWERBASE && (Map[x-1][y] & LOMASK) <= LASTPOWER))) {
             connectMask |= 8;
         }
 
         if (connectMask != 0) {
             /* Use the proper tile from the wire table */
             *tilePtr = WireTable[connectMask & 15] | CONDBIT | BULLBIT;
-        } else if ((x > 0 && x < WORLD_X - 1) && 
-                  (Map[y][x-1] & CONDBIT) && (Map[y][x+1] & CONDBIT)) {
+        } else if ((x > 0 && x < WORLD_X - 1) &&
+                  (Map[x-1][y] & CONDBIT) && (Map[x+1][y] & CONDBIT)) {
             /* Horizontal connection needed */
             *tilePtr = HPOWER | CONDBIT | BULLBIT;
         } else {
@@ -1118,26 +985,26 @@ int LayWire(int x, int y, short *tilePtr) {
         connectMask = 0;
         
         /* Check North */
-        if (y > 0 && ((Map[y-1][x] & CONDBIT) || 
-            ((Map[y-1][x] & LOMASK) >= POWERBASE && (Map[y-1][x] & LOMASK) <= LASTPOWER))) {
+        if (y > 0 && ((Map[x][y-1] & CONDBIT) ||
+            ((Map[x][y-1] & LOMASK) >= POWERBASE && (Map[x][y-1] & LOMASK) <= LASTPOWER))) {
             connectMask |= 1;
         }
-        
+
         /* Check East */
-        if (x < WORLD_X - 1 && ((Map[y][x+1] & CONDBIT) || 
-            ((Map[y][x+1] & LOMASK) >= POWERBASE && (Map[y][x+1] & LOMASK) <= LASTPOWER))) {
+        if (x < WORLD_X - 1 && ((Map[x+1][y] & CONDBIT) ||
+            ((Map[x+1][y] & LOMASK) >= POWERBASE && (Map[x+1][y] & LOMASK) <= LASTPOWER))) {
             connectMask |= 2;
         }
-        
+
         /* Check South */
-        if (y < WORLD_Y - 1 && ((Map[y+1][x] & CONDBIT) || 
-            ((Map[y+1][x] & LOMASK) >= POWERBASE && (Map[y+1][x] & LOMASK) <= LASTPOWER))) {
+        if (y < WORLD_Y - 1 && ((Map[x][y+1] & CONDBIT) ||
+            ((Map[x][y+1] & LOMASK) >= POWERBASE && (Map[x][y+1] & LOMASK) <= LASTPOWER))) {
             connectMask |= 4;
         }
-        
+
         /* Check West */
-        if (x > 0 && ((Map[y][x-1] & CONDBIT) || 
-            ((Map[y][x-1] & LOMASK) >= POWERBASE && (Map[y][x-1] & LOMASK) <= LASTPOWER))) {
+        if (x > 0 && ((Map[x-1][y] & CONDBIT) ||
+            ((Map[x-1][y] & LOMASK) >= POWERBASE && (Map[x-1][y] & LOMASK) <= LASTPOWER))) {
             connectMask |= 8;
         }
         
@@ -1148,9 +1015,9 @@ int LayWire(int x, int y, short *tilePtr) {
         } else {
             /* Special case for vertical alignment - if this is a second vertical tile, 
                use VPOWER instead of LHPOWER to avoid the upside-down L issue */
-            if (y > 0 && (Map[y-1][x] & LOMASK) == VPOWER) {
+            if (y > 0 && (Map[x][y-1] & LOMASK) == VPOWER) {
                 *tilePtr = VPOWER | CONDBIT | BULLBIT | BURNBIT;
-            } else if (y < WORLD_Y - 1 && (Map[y+1][x] & LOMASK) == VPOWER) {
+            } else if (y < WORLD_Y - 1 && (Map[x][y+1] & LOMASK) == VPOWER) {
                 *tilePtr = VPOWER | CONDBIT | BULLBIT | BURNBIT;
             } else {
                 /* Default to LHPOWER (horizontal power line) */
@@ -1219,7 +1086,7 @@ void FixSingle(int x, int y) {
         return;
     }
 
-    tile = Map[y][x] & LOMASK;
+    tile = Map[x][y] & LOMASK;
 
     /* Skip some types of tiles */
     if (tile < 1 || tile >= LASTTILE) {
@@ -1240,7 +1107,7 @@ void FixSingle(int x, int y) {
     if (tile >= ROADS && tile <= INTERSECTION) {
         /* North: allow N-S roads (VROADPOWER, HRAILROAD), exclude HBRIDGE pattern */
         if (y > 0) {
-            rawNorth = Map[y - 1][x] & LOMASK;
+            rawNorth = Map[x][y - 1] & LOMASK;
             normNorth = NormalizeRoad(rawNorth);
             if ((rawNorth == HRAILROAD) || (rawNorth == VROADPOWER) ||
                 ((normNorth >= ROADBASE) && (normNorth <= ROADBASE + 14) &&
@@ -1251,7 +1118,7 @@ void FixSingle(int x, int y) {
 
         /* East: allow E-W roads (HROADPOWER, VRAILROAD), exclude VBRIDGE pattern */
         if (x < WORLD_X - 1) {
-            rawEast = Map[y][x + 1] & LOMASK;
+            rawEast = Map[x + 1][y] & LOMASK;
             normEast = NormalizeRoad(rawEast);
             if ((rawEast == VRAILROAD) || (rawEast == HROADPOWER) ||
                 ((normEast >= ROADBASE) && (normEast <= ROADBASE + 14) &&
@@ -1262,7 +1129,7 @@ void FixSingle(int x, int y) {
 
         /* South: same as north */
         if (y < WORLD_Y - 1) {
-            rawSouth = Map[y + 1][x] & LOMASK;
+            rawSouth = Map[x][y + 1] & LOMASK;
             normSouth = NormalizeRoad(rawSouth);
             if ((rawSouth == HRAILROAD) || (rawSouth == VROADPOWER) ||
                 ((normSouth >= ROADBASE) && (normSouth <= ROADBASE + 14) &&
@@ -1273,7 +1140,7 @@ void FixSingle(int x, int y) {
 
         /* West: same as east */
         if (x > 0) {
-            rawWest = Map[y][x - 1] & LOMASK;
+            rawWest = Map[x - 1][y] & LOMASK;
             normWest = NormalizeRoad(rawWest);
             if ((rawWest == VRAILROAD) || (rawWest == HROADPOWER) ||
                 ((normWest >= ROADBASE) && (normWest <= ROADBASE + 14) &&
@@ -1291,7 +1158,7 @@ void FixSingle(int x, int y) {
     if (tile >= LHRAIL && tile <= LVRAIL10) {
         /* Check the north side */
         if (y > 0) {
-            mapValue = Map[y - 1][x] & LOMASK;
+            mapValue = Map[x][y - 1] & LOMASK;
             mapValue = NormalizeRoad(mapValue);
             if (mapValue >= RAILHPOWERV && mapValue <= VRAILROAD &&
                 mapValue != RAILHPOWERV && mapValue != HRAILROAD &&
@@ -1302,7 +1169,7 @@ void FixSingle(int x, int y) {
 
         /* Check the east side */
         if (x < WORLD_X - 1) {
-            mapValue = Map[y][x + 1] & LOMASK;
+            mapValue = Map[x + 1][y] & LOMASK;
             mapValue = NormalizeRoad(mapValue);
             if (mapValue >= RAILHPOWERV && mapValue <= VRAILROAD &&
                 mapValue != RAILVPOWERH && mapValue != VRAILROAD &&
@@ -1313,7 +1180,7 @@ void FixSingle(int x, int y) {
 
         /* Check the south side */
         if (y < WORLD_Y - 1) {
-            mapValue = Map[y + 1][x] & LOMASK;
+            mapValue = Map[x][y + 1] & LOMASK;
             mapValue = NormalizeRoad(mapValue);
             if (mapValue >= RAILHPOWERV && mapValue <= VRAILROAD &&
                 mapValue != RAILHPOWERV && mapValue != HRAILROAD &&
@@ -1324,7 +1191,7 @@ void FixSingle(int x, int y) {
 
         /* Check the west side */
         if (x > 0) {
-            mapValue = Map[y][x - 1] & LOMASK;
+            mapValue = Map[x - 1][y] & LOMASK;
             mapValue = NormalizeRoad(mapValue);
             if (mapValue >= RAILHPOWERV && mapValue <= VRAILROAD &&
                 mapValue != RAILVPOWERH && mapValue != VRAILROAD &&
@@ -1343,8 +1210,8 @@ void FixSingle(int x, int y) {
     if (tile >= LHPOWER && tile <= LVPOWER10) {
         /* Check the north side */
         if (y > 0) {
-            if ((Map[y - 1][x] & CONDBIT) != 0) {
-                rawNorth = (Map[y - 1][x] & LOMASK);
+            if ((Map[x][y - 1] & CONDBIT) != 0) {
+                rawNorth = (Map[x][y - 1] & LOMASK);
                 /* Treat any conductive neighbor except specific vertical crossings/power as a connection */
                 if (rawNorth != VPOWER && rawNorth != VROADPOWER && rawNorth != RAILVPOWERH) {
                     adjTile |= 1;  /* North connection */
@@ -1354,8 +1221,8 @@ void FixSingle(int x, int y) {
 
         /* Check the east side */
         if (x < WORLD_X - 1) {
-            if ((Map[y][x + 1] & CONDBIT) != 0) {
-                rawEast = (Map[y][x + 1] & LOMASK);
+            if ((Map[x + 1][y] & CONDBIT) != 0) {
+                rawEast = (Map[x + 1][y] & LOMASK);
                 if (rawEast != HPOWER && rawEast != HROADPOWER && rawEast != RAILHPOWERV) {
                     adjTile |= 2;  /* East connection */
                 }
@@ -1364,8 +1231,8 @@ void FixSingle(int x, int y) {
 
         /* Check the south side */
         if (y < WORLD_Y - 1) {
-            if ((Map[y + 1][x] & CONDBIT) != 0) {
-                rawSouth = (Map[y + 1][x] & LOMASK);
+            if ((Map[x][y + 1] & CONDBIT) != 0) {
+                rawSouth = (Map[x][y + 1] & LOMASK);
                 if (rawSouth != VPOWER && rawSouth != VROADPOWER && rawSouth != RAILVPOWERH) {
                     adjTile |= 4;  /* South connection */
                 }
@@ -1374,8 +1241,8 @@ void FixSingle(int x, int y) {
 
         /* Check the west side */
         if (x > 0) {
-            if ((Map[y][x - 1] & CONDBIT) != 0) {
-                rawWest = (Map[y][x - 1] & LOMASK);
+            if ((Map[x - 1][y] & CONDBIT) != 0) {
+                rawWest = (Map[x - 1][y] & LOMASK);
                 if (rawWest != HPOWER && rawWest != HROADPOWER && rawWest != RAILHPOWERV) {
                     adjTile |= 8;  /* West connection */
                 }
@@ -1460,7 +1327,7 @@ int Check3x3Area(int x, int y, int *cost) {
     /* Check all tiles in the 3x3 area */
     for (dy = -1; dy <= 1; dy++) {
         for (dx = -1; dx <= 1; dx++) {
-            tile = Map[y + dy][x + dx] & LOMASK;
+            tile = Map[x + dx][y + dy] & LOMASK;
 
             /* Check if tile is clear or can be bulldozed */
             if (tile != DIRT) {
@@ -1495,7 +1362,7 @@ int Check4x4Area(int x, int y, int *cost) {
     /* Check all tiles in the 4x4 area */
     for (dy = -1; dy <= 2; dy++) {
         for (dx = -1; dx <= 2; dx++) {
-            tile = Map[y + dy][x + dx] & LOMASK;
+            tile = Map[x + dx][y + dy] & LOMASK;
 
             /* Check if tile is clear or can be bulldozed */
             if (tile != DIRT) {
@@ -1522,15 +1389,15 @@ int Check6x6Area(int x, int y, int *cost) {
     short tile;
     int clearCost = 0;
 
-    /* Check bounds for a 6x6 zone */
-    if (x < 2 || x >= WORLD_X - 3 || y < 2 || y >= WORLD_Y - 3) {
+    /* Check bounds for a 6x6 zone - center at offset (1,1) */
+    if (x < 1 || x >= WORLD_X - 4 || y < 1 || y >= WORLD_Y - 4) {
         return 0;
     }
 
     /* Check all tiles in the 6x6 area */
-    for (dy = -2; dy <= 3; dy++) {
-        for (dx = -2; dx <= 3; dx++) {
-            tile = Map[y + dy][x + dx] & LOMASK;
+    for (dy = -1; dy <= 4; dy++) {
+        for (dx = -1; dx <= 4; dx++) {
+            tile = Map[x + dx][y + dy] & LOMASK;
 
             /* Check if tile is clear or can be bulldozed */
             if (tile != DIRT) {
@@ -2146,7 +2013,7 @@ int DoBulldozer(int mapX, int mapY) {
     }
 
     /* Get current tile */
-    tile = Map[mapY][mapX] & LOMASK;
+    tile = Map[mapX][mapY] & LOMASK;
 
     /* If this is empty land, just return success - nothing to do */
     if (tile == DIRT) {
@@ -2166,7 +2033,7 @@ int DoBulldozer(int mapX, int mapY) {
     }
 
     /* First check if it's part of a zone or big building */
-    if (Map[mapY][mapX] & ZONEBIT) {
+    if (Map[mapX][mapY] & ZONEBIT) {
         /* Direct center-tile bulldozing */
         zoneSize = checkSize(tile);
         switch (zoneSize) {
@@ -2236,13 +2103,13 @@ int DoBulldozer(int mapX, int mapY) {
     }
 
     /* Fix neighboring tiles after bulldozing */
-    FixZone(mapX, mapY, &Map[mapY][mapX]);
+    FixZone(mapX, mapY, &Map[mapX][mapY]);
 
     return TOOLRESULT_OK;
 }
 
 /* Apply the road tool */
-int DoRoad(int mapX, int mapY) {
+int DoRoadTool(int mapX, int mapY) {
     short result;
     short baseTile;
 
@@ -2251,7 +2118,7 @@ int DoRoad(int mapX, int mapY) {
         return TOOLRESULT_FAILED;
     }
 
-    baseTile = Map[mapY][mapX] & LOMASK;
+    baseTile = Map[mapX][mapY] & LOMASK;
 
     /* Check if we need to bulldoze first - now allows roads over power lines */
     if (baseTile != DIRT && baseTile != RIVER && baseTile != REDGE && baseTile != CHANNEL &&
@@ -2271,7 +2138,7 @@ int DoRoad(int mapX, int mapY) {
     }
 
     /* Use Connect tile to build and connect the road (command 2) */
-    result = ConnectTile(mapX, mapY, &Map[mapY][mapX], 2);
+    result = ConnectTile(mapX, mapY, &Map[mapX][mapY], 2);
 
     if (result == 0) {
         return TOOLRESULT_FAILED;
@@ -2281,7 +2148,7 @@ int DoRoad(int mapX, int mapY) {
 }
 
 /* Apply the rail tool */
-int DoRail(int mapX, int mapY) {
+int DoRailTool(int mapX, int mapY) {
     short result;
     short baseTile;
 
@@ -2290,7 +2157,7 @@ int DoRail(int mapX, int mapY) {
         return TOOLRESULT_FAILED;
     }
 
-    baseTile = Map[mapY][mapX] & LOMASK;
+    baseTile = Map[mapX][mapY] & LOMASK;
 
     /* Check if we need to bulldoze first - now allows rails over power lines */
     if (baseTile != DIRT && baseTile != RIVER && baseTile != REDGE && baseTile != CHANNEL &&
@@ -2310,7 +2177,7 @@ int DoRail(int mapX, int mapY) {
     }
 
     /* Use Connect tile to build and connect the rail (command 3) */
-    result = ConnectTile(mapX, mapY, &Map[mapY][mapX], 3);
+    result = ConnectTile(mapX, mapY, &Map[mapX][mapY], 3);
 
     if (result == 0) {
         return TOOLRESULT_FAILED;
@@ -2329,7 +2196,7 @@ int DoWire(int mapX, int mapY) {
         return TOOLRESULT_FAILED;
     }
 
-    baseTile = Map[mapY][mapX] & LOMASK;
+    baseTile = Map[mapX][mapY] & LOMASK;
 
     /* Check if we need to bulldoze first - now allows power over roads and rails */
     if (baseTile != DIRT && baseTile != RIVER && baseTile != REDGE && baseTile != CHANNEL &&
@@ -2348,7 +2215,7 @@ int DoWire(int mapX, int mapY) {
     }
 
     /* Use Connect tile to build and connect the wire (command 4) */
-    result = ConnectTile(mapX, mapY, &Map[mapY][mapX], 4);
+    result = ConnectTile(mapX, mapY, &Map[mapX][mapY], 4);
 
     if (result == 0) {
         return TOOLRESULT_FAILED;
@@ -2367,7 +2234,7 @@ int DoPark(int mapX, int mapY) {
         return TOOLRESULT_FAILED;
     }
 
-    tile = Map[mapY][mapX] & LOMASK;
+    tile = Map[mapX][mapY] & LOMASK;
 
     /* Parks can only be built on clear land */
     if (tile != TILE_DIRT) {
@@ -2414,7 +2281,7 @@ int PlaceZone(int mapX, int mapY, int baseValue, int totalCost) {
     if (bulldozeCost > 0) {
         for (dy = -1; dy <= 1; dy++) {
             for (dx = -1; dx <= 1; dx++) {
-                short tile = Map[mapY + dy][mapX + dx] & LOMASK;
+                short tile = Map[mapX + dx][mapY + dy] & LOMASK;
                 if (tile != DIRT && (tile == RUBBLE || (tile >= TINYEXP && tile <= LASTTINYEXP))) {
                     setMapTile(mapX + dx, mapY + dy, DIRT, 0, TILE_SET_REPLACE, "clearArea-dirt");
                 }
@@ -2443,7 +2310,7 @@ int PlaceZone(int mapX, int mapY, int baseValue, int totalCost) {
     /* Fix the zone edges to connect with neighbors */
     for (dy = -1; dy <= 1; dy++) {
         for (dx = -1; dx <= 1; dx++) {
-            FixZone(mapX + dx, mapY + dy, &Map[mapY + dy][mapX + dx]);
+            FixZone(mapX + dx, mapY + dy, &Map[mapX + dx][mapY + dy]);
         }
     }
 
@@ -2451,20 +2318,15 @@ int PlaceZone(int mapX, int mapY, int baseValue, int totalCost) {
 }
 
 /* Apply the residential zone tool */
-int DoResidential(int mapX, int mapY) {
-    /* Use the zone helper for residential zones */
+int DoResidentialTool(int mapX, int mapY) {
     return PlaceZone(mapX, mapY, RESBASE, TOOL_RESIDENTIAL_COST);
 }
 
-/* Apply the commercial zone tool */
-int DoCommercial(int mapX, int mapY) {
-    /* Use the zone helper for commercial zones */
+int DoCommercialTool(int mapX, int mapY) {
     return PlaceZone(mapX, mapY, COMBASE, TOOL_COMMERCIAL_COST);
 }
 
-/* Apply the industrial zone tool */
-int DoIndustrial(int mapX, int mapY) {
-    /* Use the zone helper for industrial zones */
+int DoIndustrialTool(int mapX, int mapY) {
     return PlaceZone(mapX, mapY, INDBASE, TOOL_INDUSTRIAL_COST);
 }
 
@@ -2503,7 +2365,7 @@ int Place4x4Building(int mapX, int mapY, int baseValue, int centerTile, int tota
     if (bulldozeCost > 0) {
         for (dy = -1; dy <= 2; dy++) {
             for (dx = -1; dx <= 2; dx++) {
-                short tile = Map[mapY + dy][mapX + dx] & LOMASK;
+                short tile = Map[mapX + dx][mapY + dy] & LOMASK;
                 if (tile != DIRT && (tile == RUBBLE || (tile >= TINYEXP && tile <= LASTTINYEXP))) {
                     setMapTile(mapX + dx, mapY + dy, DIRT, 0, TILE_SET_REPLACE, "clearArea-dirt");
                 }
@@ -2537,7 +2399,7 @@ int Place4x4Building(int mapX, int mapY, int baseValue, int centerTile, int tota
     /* Fix the building edges to connect with neighbors */
     for (dy = -1; dy <= 2; dy++) {
         for (dx = -1; dx <= 2; dx++) {
-            FixZone(mapX + dx, mapY + dy, &Map[mapY + dy][mapX + dx]);
+            FixZone(mapX + dx, mapY + dy, &Map[mapX + dx][mapY + dy]);
         }
     }
 
@@ -2589,9 +2451,9 @@ int Place6x6Building(int mapX, int mapY, int baseValue, int centerTile, int tota
 
     /* Clear area if needed and charge for it */
     if (bulldozeCost > 0) {
-        for (dy = -2; dy <= 3; dy++) {
-            for (dx = -2; dx <= 3; dx++) {
-                short tile = Map[mapY + dy][mapX + dx] & LOMASK;
+        for (dy = -1; dy <= 4; dy++) {
+            for (dx = -1; dx <= 4; dx++) {
+                short tile = Map[mapX + dx][mapY + dy] & LOMASK;
                 if (tile != DIRT && (tile == RUBBLE || (tile >= TINYEXP && tile <= LASTTINYEXP))) {
                     setMapTile(mapX + dx, mapY + dy, DIRT, 0, TILE_SET_REPLACE, "clearArea-dirt");
                 }
@@ -2603,14 +2465,14 @@ int Place6x6Building(int mapX, int mapY, int baseValue, int centerTile, int tota
     /* Charge for the building */
     Spend(totalCost - bulldozeCost);
 
-    /* Place the 6x6 building */
+    /* Place the 6x6 building - center at offset (1,1) matching original Micropolis */
     index = 0;
-    for (dy = -2; dy <= 3; dy++) {
-        for (dx = -2; dx <= 3; dx++) {
+    for (dy = -1; dy <= 4; dy++) {
+        for (dx = -1; dx <= 4; dx++) {
             if (dx == 0 && dy == 0) {
                 setMapTile(mapX, mapY, centerTile, ZONEBIT | BULLBIT | CONDBIT, TILE_SET_REPLACE, "PlaceBuilding-center");
             } else {
-                if (index == 14) {
+                if (index == 7) {
                     index++;
                 }
                 setMapTile(mapX + dx, mapY + dy, baseValue + index, BULLBIT | CONDBIT, TILE_SET_REPLACE, "PlaceBuilding-tile");
@@ -2620,9 +2482,9 @@ int Place6x6Building(int mapX, int mapY, int baseValue, int centerTile, int tota
     }
 
     /* Fix the building edges to connect with neighbors */
-    for (dy = -2; dy <= 3; dy++) {
-        for (dx = -2; dx <= 3; dx++) {
-            FixZone(mapX + dx, mapY + dy, &Map[mapY + dy][mapX + dx]);
+    for (dy = -1; dy <= 4; dy++) {
+        for (dx = -1; dx <= 4; dx++) {
+            FixZone(mapX + dx, mapY + dy, &Map[mapX + dx][mapY + dy]);
         }
     }
 
@@ -2630,7 +2492,7 @@ int Place6x6Building(int mapX, int mapY, int baseValue, int centerTile, int tota
 }
 
 /* Apply the airport tool */
-int DoAirport(int mapX, int mapY) {
+int DoAirportTool(int mapX, int mapY) {
     /* Use the building helper for airports */
     return Place6x6Building(mapX, mapY, TILE_AIRPORTBASE, TILE_AIRPORT, TOOL_AIRPORT_COST);
 }
@@ -2693,7 +2555,7 @@ int DoQuery(int mapX, int mapY) {
         return TOOLRESULT_FAILED;
     }
 
-    tile = Map[mapY][mapX];
+    tile = Map[mapX][mapY];
 
     /* Get zone name from tile */
     zoneName = GetZoneName(tile);
@@ -2718,11 +2580,11 @@ int ApplyTool(int mapX, int mapY) {
         break;
 
     case roadState:
-        result = DoRoad(mapX, mapY);
+        result = DoRoadTool(mapX, mapY);
         break;
 
     case railState:
-        result = DoRail(mapX, mapY);
+        result = DoRailTool(mapX, mapY);
         break;
 
     case wireState:
@@ -2734,15 +2596,15 @@ int ApplyTool(int mapX, int mapY) {
         break;
 
     case residentialState:
-        result = DoResidential(mapX, mapY);
+        result = DoResidentialTool(mapX, mapY);
         break;
 
     case commercialState:
-        result = DoCommercial(mapX, mapY);
+        result = DoCommercialTool(mapX, mapY);
         break;
 
     case industrialState:
-        result = DoIndustrial(mapX, mapY);
+        result = DoIndustrialTool(mapX, mapY);
         break;
 
     case fireState:
@@ -2770,7 +2632,7 @@ int ApplyTool(int mapX, int mapY) {
         break;
 
     case airportState:
-        result = DoAirport(mapX, mapY);
+        result = DoAirportTool(mapX, mapY);
         break;
 
     case queryState:
@@ -2872,9 +2734,8 @@ void DrawToolHover(HDC hdc, int mapX, int mapY, int toolType, int xOffset, int y
         break;
 
     case TOOL_SIZE_6X6:
-        /* Center 6x6 highlight at cursor */
-        startX = mapX - 2;
-        startY = mapY - 2;
+        startX = mapX - 1;
+        startY = mapY - 1;
         width = 6;
         height = 6;
         break;

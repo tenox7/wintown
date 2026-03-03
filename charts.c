@@ -156,14 +156,14 @@ void UpdateChartData(void) {
     if (fundsValue > 255) fundsValue = 255;
     
     crimeValue = (short)CrimeAverage;
-    pollutionValue = (short)PollutionAverage;
+    pollutionValue = (short)PolluteAverage;
     landValueValue = (short)LVAverage;
     
     infrastructureValue = (short)((RoadTotal + RailTotal) / 10);  /* Scale infrastructure */
     
     /* Calculate power percentage */
-    if (PwrdZCnt + UnpwrdZCnt > 0) {
-        powerValue = (short)((PwrdZCnt * 100) / (PwrdZCnt + UnpwrdZCnt));
+    if (PwrdZCnt + unPwrdZCnt > 0) {
+        powerValue = (short)((PwrdZCnt * 100) / (PwrdZCnt + unPwrdZCnt));
     } else {
         powerValue = 0;
     }
@@ -954,11 +954,11 @@ void DrawChartLegend(HDC hdc) {
     }
     
     /* Add power information at the bottom */
-    if (PwrdZCnt > 0 || UnpwrdZCnt > 0) {
+    if (PwrdZCnt > 0 || unPwrdZCnt > 0) {
         char powerBuffer[128];
         y += 20;
         SetTextColor(hdc, RGB(60, 60, 60));
-        sprintf(powerBuffer, "Power: Powered=%d Unpowered=%d", PwrdZCnt, UnpwrdZCnt);
+        sprintf(powerBuffer, "Power: Powered=%d Unpowered=%d", PwrdZCnt, unPwrdZCnt);
         TextOut(hdc, 10, y, powerBuffer, (int)strlen(powerBuffer));
     }
     

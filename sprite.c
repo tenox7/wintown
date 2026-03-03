@@ -407,7 +407,7 @@ void DoShipSprite(SimSprite *sprite) {
             x = ((sprite->x + 48 - 1) >> 4) + BDx[z];
             y = (sprite->y >> 4) + BDy[z];
             if (BOUNDS_CHECK(x, y)) {
-                t = Map[y][x] & LOMASK;
+                t = Map[x][y] & LOMASK;
                 if (t == CHANNEL || t == BRWH || t == BRWV ||
                     ShipTryOther(t, sprite->dir, z)) {
                     sprite->new_dir = z;
@@ -513,12 +513,12 @@ void DoCopterSprite(SimSprite *sprite) {
         if (sprite->count > 0) sprite->count--;
 
         if (!sprite->count) {
-            SimSprite *s = GetSpriteByType(SPRITE_MONSTER);
+            SimSprite *s = GetSprite(SPRITE_MONSTER);
             if (s != NULL) {
                 sprite->dest_x = s->x;
                 sprite->dest_y = s->y;
             } else {
-                s = GetSpriteByType(SPRITE_TORNADO);
+                s = GetSprite(SPRITE_TORNADO);
                 if (s != NULL) {
                     sprite->dest_x = s->x;
                     sprite->dest_y = s->y;
@@ -551,7 +551,7 @@ void DoCopterSprite(SimSprite *sprite) {
         dx = (sprite->x + 48) >> 5;
         dy = sprite->y >> 5;
         if (dx >= 0 && dx < (WORLD_X >> 1) && dy >= 0 && dy < (WORLD_Y >> 1)) {
-            if (TrfDensity[dy][dx] > 170 && (SimRandom(8) == 0)) {
+            if (TrfDensity[dx][dy] > 170 && (SimRandom(8) == 0)) {
                 SendMesAt(-41, (dx << 1) + 1, (dy << 1) + 1);
                 sprite->sound_count = 200;
             }
@@ -594,7 +594,7 @@ void DoBusSprite(SimSprite *sprite) {
     dy = sprite->y >> 5;
     
     if (dx >= 0 && dx < WORLD_X/2 && dy >= 0 && dy < WORLD_Y/2) {
-        speed = TrfDensity[dy][dx] >> 1;
+        speed = TrfDensity[dx][dy] >> 1;
         if (speed < 1) speed = 1;
         if (speed > 8) speed = 8;
         
@@ -647,7 +647,7 @@ void DoPoliceSprite(SimSprite *sprite) {
             dy = sprite->y >> 5;
             
             if (dx >= 0 && dx < WORLD_X/2 && dy >= 0 && dy < WORLD_Y/2) {
-                z = TrfDensity[dy][dx];
+                z = TrfDensity[dx][dy];
                 if (z > POLICE_TRAFFIC_THRESHOLD && SimRandom(POLICE_REPORT_CHANCE) == 0) {
                     /* Report heavy traffic */
                     MakeSound(SOUND_HEAVY_TRAFFIC, sprite->x, sprite->y);
@@ -690,11 +690,11 @@ static void StartFire(int x, int y) {
     x >>= 4;
     y >>= 4;
     if (x < 0 || x >= WORLD_X || y < 0 || y >= WORLD_Y) return;
-    z = Map[y][x];
+    z = Map[x][y];
     t = z & LOMASK;
     if (!(z & BURNBIT) && t != 0) return;
     if (z & ZONEBIT) return;
-    Map[y][x] = FIRE + (SimRandom(4)) + ANIMBIT;
+    Map[x][y] = FIRE + (SimRandom(4)) + ANIMBIT;
 }
 
 static int checkWet(int t) {
@@ -721,8 +721,8 @@ static void OFireZone(int x, int y, int ch) {
             int xx = x + tx;
             int yy = y + ty;
             if (BOUNDS_CHECK(xx, yy)) {
-                if ((Map[yy][xx] & LOMASK) >= ROADBASE)
-                    Map[yy][xx] |= BULLBIT;
+                if ((Map[xx][yy] & LOMASK) >= ROADBASE)
+                    Map[xx][yy] |= BULLBIT;
             }
         }
     }
@@ -736,24 +736,24 @@ static void SpriteDestroy(int ox, int oy) {
     y = oy >> 4;
     if (!BOUNDS_CHECK(x, y))
         return;
-    z = Map[y][x];
+    z = Map[x][y];
     t = z & LOMASK;
     if (t < TREEBASE)
         return;
     if (!(z & BURNBIT)) {
         if (t >= ROADBASE && t <= LASTROAD)
-            Map[y][x] = RIVER;
+            Map[x][y] = RIVER;
         return;
     }
     if (z & ZONEBIT) {
         OFireZone(x, y, z);
         if (t > RZB)
-            makeExplosion(x, y);
+            MakeExplosion(x, y);
     }
     if (checkWet(t))
-        Map[y][x] = RIVER;
+        Map[x][y] = RIVER;
     else
-        Map[y][x] = TINYEXP | BULLBIT | ANIMBIT;
+        Map[x][y] = TINYEXP | BULLBIT | ANIMBIT;
 }
 
 /* Helper function to determine if tile is water */
@@ -876,7 +876,7 @@ static short GetChar(int x, int y) {
         return -1;
     }
     
-    return Map[mapY][mapX] & LOMASK;
+    return Map[mapX][mapY] & LOMASK;
 }
 
 static int CheckSpriteCollision(SimSprite *s1, SimSprite *s2) {
@@ -953,7 +953,7 @@ static void CheckCollisions(SimSprite *sprite) {
 
 void GenerateTrain(int x, int y) {
     if (TotalPop > 20 &&
-        GetSpriteByType(SPRITE_TRAIN) == NULL &&
+        GetSprite(SPRITE_TRAIN) == NULL &&
         !SimRandom(25)) {
         NewSprite(SPRITE_TRAIN, (x << 4) + TRA_GROOVE_X, (y << 4) + TRA_GROOVE_Y);
     }
@@ -970,28 +970,28 @@ void GenerateShip(void) {
         return;
     if (SimRandom(4) == 0) {
         for (x = 4; x < WORLD_X - 2; x++)
-            if ((Map[0][x] & LOMASK) == CHANNEL) {
+            if ((Map[x][0] & LOMASK) == CHANNEL) {
                 MakeShipHere(x, 0);
                 return;
             }
     }
     if (SimRandom(4) == 0) {
         for (y = 1; y < WORLD_Y - 2; y++)
-            if ((Map[y][0] & LOMASK) == CHANNEL) {
+            if ((Map[0][y] & LOMASK) == CHANNEL) {
                 MakeShipHere(0, y);
                 return;
             }
     }
     if (SimRandom(4) == 0) {
         for (x = 4; x < WORLD_X - 2; x++)
-            if ((Map[WORLD_Y - 1][x] & LOMASK) == CHANNEL) {
+            if ((Map[x][WORLD_Y - 1] & LOMASK) == CHANNEL) {
                 MakeShipHere(x, WORLD_Y - 1);
                 return;
             }
     }
     if (SimRandom(4) == 0) {
         for (y = 1; y < WORLD_Y - 2; y++)
-            if ((Map[y][WORLD_X - 1] & LOMASK) == CHANNEL) {
+            if ((Map[WORLD_X - 1][y] & LOMASK) == CHANNEL) {
                 MakeShipHere(WORLD_X - 1, y);
                 return;
             }
@@ -999,12 +999,12 @@ void GenerateShip(void) {
 }
 
 void GeneratePlane(int x, int y) {
-    if (GetSpriteByType(SPRITE_AIRPLANE) != NULL) return;
+    if (GetSprite(SPRITE_AIRPLANE) != NULL) return;
     NewSprite(SPRITE_AIRPLANE, (x << 4) + 48, (y << 4) + 12);
 }
 
 void GenerateCopter(int x, int y) {
-    if (GetSpriteByType(SPRITE_HELICOPTER) != NULL) return;
+    if (GetSprite(SPRITE_HELICOPTER) != NULL) return;
     NewSprite(SPRITE_HELICOPTER, x << 4, (y << 4) + 30);
 }
 
@@ -1021,7 +1021,7 @@ int GetSpriteCount(void) {
 }
 
 /* Get sprite by index for rendering */
-SimSprite* GetSprite(int index) {
+SimSprite* GetSpriteByIndex(int index) {
     if (index >= 0 && index < MAX_SPRITES) {
         if (GlobalSprites[index].type != SPRITE_UNDEFINED) {
             return &GlobalSprites[index];
@@ -1031,7 +1031,7 @@ SimSprite* GetSprite(int index) {
 }
 
 /* Find first active sprite of a given type */
-SimSprite* GetSpriteByType(int type) {
+SimSprite* GetSprite(int type) {
     int i;
     for (i = 0; i < MAX_SPRITES; i++) {
         if (GlobalSprites[i].type == type && GlobalSprites[i].frame != 0)
@@ -1085,7 +1085,7 @@ void DoMonsterSprite(SimSprite *sprite) {
         int mx = (sprite->x + sprite->x_hot) >> 4;
         int my = (sprite->y + sprite->y_hot) >> 4;
         if (!BOUNDS_CHECK(mx, my) ||
-            ((Map[my][mx] & LOMASK) == RIVER && sprite->count != 0 && sprite->control == -1)) {
+            ((Map[mx][my] & LOMASK) == RIVER && sprite->count != 0 && sprite->control == -1)) {
             DestroySprite(sprite);
             return;
         }
@@ -1163,7 +1163,7 @@ static int GetTrafficDensityAtSprite(SimSprite *sprite) {
     dy = sprite->y >> 5;
     
     if (dx >= 0 && dx < WORLD_X/2 && dy >= 0 && dy < WORLD_Y/2) {
-        return TrfDensity[dy][dx];
+        return TrfDensity[dx][dy];
     }
     return 0;
 }

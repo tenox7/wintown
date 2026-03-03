@@ -22,7 +22,6 @@ extern int loadScenario(int scenarioId);
 
 /* External simulation functions */
 extern void DoSimInit(void);
-extern void SetValves(void);
 
 /* External variables */
 extern long TotalFunds;
@@ -31,7 +30,7 @@ extern int ComPop;
 extern int IndPop;
 extern int TotalPop;
 extern QUAD CityPop;
-extern int CityClass;
+extern short CityClass;
 extern int LastTotalPop;
 extern int GameLevel;
 
