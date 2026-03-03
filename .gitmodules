@@ -1,0 +1,3 @@
+[submodule "micropolis"]
+	path = micropolis
+	url = https://github.com/tenox7/micropolis
