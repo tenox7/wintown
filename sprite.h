@@ -111,6 +111,7 @@ typedef struct SimSprite {
     int turn;          /* Turn state */
     int accel;         /* Acceleration value */
     int speed;         /* Movement speed */
+    struct SimSprite *next;
 } SimSprite;
 
 /* Function prototypes */

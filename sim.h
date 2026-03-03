@@ -359,10 +359,10 @@ extern QUAD TotalFunds;  /* City operating funds */
 extern int CityTax;      /* City tax rate 0-20 */
 
 /* Counters */
-extern int DoInitialEval; /* Run CityEvaluation on first pass */
-extern int Scycle;       /* Simulation cycle counter (0-1023) */
-extern int Fcycle;       /* Frame counter (0-1023) */
-extern int Spdcycle;     /* Speed cycle counter (0-1023) */
+extern short DoInitialEval; /* Run CityEvaluation on first pass */
+extern short Scycle;     /* Simulation cycle counter (0-1023) */
+extern short Fcycle;     /* Frame counter (0-1023) */
+extern short Spdcycle;   /* Speed cycle counter (0-1023) */
 
 /* Game evaluation - defined in s_eval.c */
 extern short CityYes;
@@ -380,9 +380,9 @@ extern short ProblemOrder[];
 extern int CityLevel;      /* Mayor level (0-5, 0 is worst) */
 extern int CityLevelPop;   /* Population threshold for level */
 extern int GameLevel;      /* Game level (0=easy, 1=medium, 2=hard) */
-extern int ResCap;         /* Residential capacity reached */
-extern int ComCap;         /* Commercial capacity reached */
-extern int IndCap;         /* Industrial capacity reached */
+extern short ResCap;       /* Residential capacity reached */
+extern short ComCap;       /* Commercial capacity reached */
+extern short IndCap;       /* Industrial capacity reached */
 
 /* City statistics */
 extern int ResPop;       /* Residential population */
@@ -403,8 +403,8 @@ extern int ComZPop;
 extern int IndZPop;
 
 /* Infrastructure counts */
-extern int PwrdZCnt;     /* Number of powered zones */
-extern int unPwrdZCnt;   /* Number of unpowered zones */
+extern short PwrdZCnt;   /* Number of powered zones */
+extern short unPwrdZCnt; /* Number of unpowered zones */
 extern int RoadTotal;    /* Number of road tiles */
 extern int RailTotal;    /* Number of rail tiles */
 extern int FirePop;      /* Number of burning fire tiles */
@@ -429,7 +429,7 @@ extern int LVAverage;    /* Average land value */
 extern short RValve;     /* Residential development rate */
 extern short CValve;     /* Commercial development rate */
 extern short IValve;     /* Industrial development rate */
-extern int ValveFlag;    /* Set to 1 when valves change */
+extern short ValveFlag;  /* Set to 1 when valves change */
 
 /* Economic model (from original Micropolis) */
 extern float EMarket;
@@ -464,12 +464,19 @@ extern float DifficultyIndustrialGrowth[3];  /* Industrial growth rate multiplie
 extern short DifficultyDisasterChance[3];    /* Disaster frequency (lower = more frequent) */
 extern short DifficultyMeltdownRisk[3];      /* Nuclear meltdown risk (lower = more dangerous) */
 
-/* Core simulation functions */
+#ifndef _W_SIM_H
 void DoSimInit(void);
 void SimFrame(void);
 void Simulate(int mod16);
-void DoTimeStuff(void);
 void MapScan(int x1, int x2, int y1, int y2);
+int GetBoatDis(void);
+int SimRandom(int range);
+int Rand(int range);
+short Rand16();
+short Rand16Signed();
+void RandomlySeedRand(void);
+#endif
+void DoTimeStuff(void);
 
 /* Census/valve functions - sim/s_simscan.c (original Micropolis from s_sim.c) */
 SetValves();
@@ -479,6 +486,7 @@ Take2Census();
 extern short TaxFlag;
 extern short InitSimLoad;
 extern short ResHisMax, ComHisMax, IndHisMax;
+extern short Res2HisMax, Com2HisMax, Ind2HisMax;
 extern short Graph10Max, Graph120Max;
 
 /* Init functions - sim/s_simscan.c (original Micropolis from s_sim.c) */
@@ -509,7 +517,7 @@ int RZPop(int Ch9);
 int CZPop(int Ch9);
 int IZPop(int Ch9);
 
-/* Functions implemented in sim/s_spzone.c (original Micropolis) */
+/* Functions implemented in sim/s_sim.c (original Micropolis) */
 DoSPZone(short PwrOn);
 
 /* Functions implemented in sim/s_zone.c (population calculations) */
@@ -543,9 +551,7 @@ DoBridge();
 DoFire();
 FireZone(int Xloc, int Yloc, int ch);
 RepairZone(short ZCent, short zsize);
-int GetBoatDis();
-void RandomlySeedRand(void); /* Initialize random number generator */
-int SimRandom(int range);  /* Random number function used by traffic system */
+/* GetBoatDis, RandomlySeedRand, SimRandom declared above */
 
 /* Scanner-related variables and functions - s_scan.c */
 extern short CCx, CCy, CCx2, CCy2;
@@ -656,20 +662,25 @@ void UpdateSpecialAnimations(void); /* Update all special animations */
 #define SETPOWERBIT(x, y) (PowerMap[POWERWORD(x, y)] |= (1 << ((x) & 0xf)))
 #define PWRSTKSIZE ((WORLD_X * WORLD_Y) / 4)
 
-#define NMAPS 15
-#define DYMAP 14
-#define FIMAP 12
+#define ALMAP 0
+#define REMAP 1
+#define COMAP 2
+#define INMAP 3
+#define PRMAP 4
+#define RDMAP 5
 #define PDMAP 6
 #define RGMAP 7
+#define TDMAP 8
 #define PLMAP 9
 #define CRMAP 10
 #define LVMAP 11
+#define FIMAP 12
 #define POMAP 13
+#define DYMAP 14
+#define NMAPS 15
 
 extern short PowerMap[];
-extern short Rand16();
-extern short Rand16Signed();
-extern int Rand(int range);
+/* Rand16, Rand16Signed, Rand declared above */
 extern FireBomb();
 
 extern Byte tem[HWLDX][HWLDY];
@@ -679,7 +690,9 @@ extern Byte Qtem[QWX][QWY];
 
 #define NoDisasters (!DisastersEnabled)
 #define MakeExplosionAt(px, py) MakeExplosion((px) >> 4, (py) >> 4)
+#ifndef _W_SIM_H
 #define SeedRand(s) srand((unsigned int)(s))
+#endif
 #define GenerateNewCity _orig_GenerateNewCity
 #define GenerateSomeCity _orig_GenerateSomeCity
 
@@ -700,5 +713,13 @@ extern Byte Qtem[QWX][QWY];
 static char *_bridgeCityFileName;
 #define CityFileName _bridgeCityFileName
 static struct { long tv_usec; long tv_sec; } start_time;
+
+#ifdef _W_SIM_H
+static struct { SimSprite *sprite; } _sim_stub;
+#define sim (&_sim_stub)
+short _orig_Rand(short range);
+int _orig_Rand16();
+int _orig_Rand16Signed();
+#endif
 
 #endif /* _SIM_H */

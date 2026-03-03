@@ -20,18 +20,8 @@ int MesNum = 0;
 int LastPicNum = 0;
 DWORD LastMesTime = 0;
 
-/* External simulation variables */
-extern int CityTime;
-extern int TotalZPop, ResZPop, ComZPop, IndZPop;
-extern int NuclearPop, CoalPop;
-extern int RoadTotal, RailTotal;
-extern int ResPop, StadiumPop, IndPop, PortPop, ComPop, APortPop;
-extern int unPwrdZCnt, PwrdZCnt;
-extern int PolluteAverage, CrimeAverage, TotalPop, FireStPop, PolicePop;
-extern int CityTax, RoadEffect, FireEffect, PoliceEffect;
-extern short TrafficAverage;
-extern short ScenarioID, ScoreType, ScoreWait;
-extern int ResCap, IndCap, ComCap;
+/* External simulation variables - declared in sim.h */
+extern int TotalZPop;
 
 /* Forward declarations */
 int SendMes(int Mnum);

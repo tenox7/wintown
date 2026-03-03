@@ -52,6 +52,14 @@ Byte tem[HWLDX][HWLDY];
 Byte tem2[HWLDX][HWLDY];
 short STem[SmX][SmY];
 Byte Qtem[QWX][QWY];
+
+/* Variables from original s_alloc.c (were in s_simscan.c) */
+short ResHisMax, Res2HisMax;
+short ComHisMax, Com2HisMax;
+short IndHisMax, Ind2HisMax;
+short Graph10Max, Graph120Max;
+short TaxFlag;
+short InitSimLoad;
 #pragma pack(pop)
 
 /* Runtime simulation state */
@@ -63,7 +71,7 @@ int CityYear = 1900;
 int CityMonth = 0;
 QUAD TotalFunds = 5000;
 int CityTax = 7;      /* City tax rate 0-20% */
-int DoInitialEval = 0;
+/* DoInitialEval now in s_sim.c */
 
 /* External declarations for scenario variables */
 extern short ScenarioID;
@@ -81,20 +89,13 @@ int ComZPop = 0;
 int IndZPop = 0;
 int CoalPop = 0;
 int FireStPop = 0;
-short AvCityTax = 0;
-
-/* Counters */
-int Scycle = 0;
-int Fcycle = 0;
-int Spdcycle = 0;
+/* AvCityTax, Scycle, Fcycle, Spdcycle now in s_sim.c */
 
 /* Game evaluation - CityYes/CityNo/CityPop/CityScore/deltaCityScore/CityClass in s_eval.c */
 int CityLevel = 0;
 int CityLevelPop = 0;
 int GameLevel = 0;
-int ResCap = 0;
-int ComCap = 0;
-int IndCap = 0;
+/* ResCap, ComCap, IndCap now in s_sim.c */
 
 /* City statistics */
 int ResPop = 0;
@@ -109,9 +110,7 @@ float Delta = 1.0f;
  * during map scanning don't cause noticeable display flicker
  */
 
-/* Infrastructure counts */
-int PwrdZCnt = 0;
-int unPwrdZCnt = 0;
+/* PwrdZCnt, unPwrdZCnt now in s_sim.c */
 int RoadTotal = 0;
 int RailTotal = 0;
 int FirePop = 0;
@@ -128,19 +127,8 @@ int FireEffect = 1000;
 int PolluteAverage = 0;
 int CrimeAverage = 0;
 int LVAverage = 0;
-short NewPower = 0;
-
-/* Growth rates */
-short RValve = 0;
-short CValve = 0;
-short IValve = 0;
-int ValveFlag = 0;
-
-/* Economic model variables (from original Micropolis) */
-float EMarket = 4.0f;
-short CrimeRamp = 0;
-short PolluteRamp = 0;
-short CashFlow = 0;
+/* NewPower, RValve, CValve, IValve, ValveFlag, EMarket,
+   CrimeRamp, PolluteRamp, CashFlow now in s_sim.c */
 
 /* Disasters */
 extern short DisasterEvent; /* Defined in scenarios.c */
