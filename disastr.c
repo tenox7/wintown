@@ -11,18 +11,6 @@ extern int addDebugLog(const char *format, ...);
 
 short CrashX, CrashY;
 
-int BridgeSendMes(int msg, int x, int y) {
-    switch (msg) {
-    case -23: ShowNotificationAt(NOTIF_EARTHQUAKE, x, y); break;
-    case -20: ShowNotificationAt(NOTIF_FIRE_REPORTED, x, y); break;
-    case -42: ShowNotificationAt(NOTIF_FLOODING, x, y); break;
-    case -30: ShowNotificationAt(NOTIF_FIRE_REPORTED, x, y); break;
-    case -43: ShowNotificationAt(NOTIF_NUCLEAR_MELTDOWN, x, y); break;
-    case 20:  ShowNotificationAt(NOTIF_FIRE_REPORTED, x, y); break;
-    }
-    return 0;
-}
-
 extern int FireBomb();
 
 int DropFireBombs() {

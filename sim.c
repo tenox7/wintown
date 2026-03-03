@@ -45,9 +45,13 @@ short ComRate[SmX][SmY];
 short RateOGMem[ROGMEM_X][ROGMEM_Y];
 
 /* Power distribution bitmap */
-#define POWERMAPROW ((WORLD_X + 15) / 16)
-#define PWRMAPSIZE (POWERMAPROW * WORLD_Y)
 short PowerMap[PWRMAPSIZE];
+
+/* Temp work arrays for s_scan.c */
+Byte tem[HWLDX][HWLDY];
+Byte tem2[HWLDX][HWLDY];
+short STem[SmX][SmY];
+Byte Qtem[QWX][QWY];
 #pragma pack(pop)
 
 /* Runtime simulation state */

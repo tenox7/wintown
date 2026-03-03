@@ -6,6 +6,7 @@
 #define _SIM_H
 
 #include <windows.h>
+#include "sprite.h"
 
 /* External declaration for UpdateToolbar function */
 extern void UpdateToolbar(void);
@@ -615,9 +616,7 @@ int MakeTornado();
 int MakeExplosion();
 int DoMeltdown();
 int DropFireBombs();
-int BridgeSendMes();
 extern short CrashX, CrashY;
-int BridgeSendMes();
 
 /* Earthquake screen shake effects (main.c) */
 void DoEarthQuake(void);              /* Start earthquake screen shake */
@@ -639,5 +638,67 @@ void UpdateFire(int x, int y);      /* Update fire animations */
 void UpdateNuclearPower(int x, int y);  /* Update nuclear power plant animations */
 void UpdateAirportRadar(int x, int y);  /* Update airport radar animation */
 void UpdateSpecialAnimations(void); /* Update all special animations */
+
+#ifndef TRUE
+#define TRUE 1
+#endif
+#ifndef FALSE
+#define FALSE 0
+#endif
+
+#define BLBNBIT (BULLBIT|BURNBIT)
+#define PROBNUM 10
+#define SHI 4
+
+#define POWERMAPROW ((WORLD_X + 15) / 16)
+#define PWRMAPSIZE (POWERMAPROW * WORLD_Y)
+#define POWERWORD(x, y) (((x) >>4) + ((y) <<3))
+#define SETPOWERBIT(x, y) (PowerMap[POWERWORD(x, y)] |= (1 << ((x) & 0xf)))
+#define PWRSTKSIZE ((WORLD_X * WORLD_Y) / 4)
+
+#define NMAPS 15
+#define DYMAP 14
+#define FIMAP 12
+#define PDMAP 6
+#define RGMAP 7
+#define PLMAP 9
+#define CRMAP 10
+#define LVMAP 11
+#define POMAP 13
+
+extern short PowerMap[];
+extern short Rand16();
+extern short Rand16Signed();
+extern int Rand(int range);
+extern FireBomb();
+
+extern Byte tem[HWLDX][HWLDY];
+extern Byte tem2[HWLDX][HWLDY];
+extern short STem[SmX][SmY];
+extern Byte Qtem[QWX][QWY];
+
+#define NoDisasters (!DisastersEnabled)
+#define MakeExplosionAt(px, py) MakeExplosion((px) >> 4, (py) >> 4)
+#define SeedRand(s) srand((unsigned int)(s))
+#define GenerateNewCity _orig_GenerateNewCity
+#define GenerateSomeCity _orig_GenerateSomeCity
+
+#define ChangeEval()
+#define ChangeCensus()
+#define drawCurrPercents()
+#define ckfree(p)
+#define gettimeofday(a,b) 0
+#define InitWillStuff()
+#define ResetMapState()
+#define ResetEditorState()
+#define InvalidateEditors()
+#define InvalidateMaps()
+#define UpdateFunds()
+#define Eval(x)
+#define Kick()
+
+static char *_bridgeCityFileName;
+#define CityFileName _bridgeCityFileName
+static struct { long tv_usec; long tv_sec; } start_time;
 
 #endif /* _SIM_H */

@@ -321,17 +321,19 @@ void doMessage(void) {
             case 12: strcpy(messageStr, "Traffic jams everywhere!"); break;
             case 20: strcpy(messageStr, "FIRE REPORTED!"); break;
             case 21: strcpy(messageStr, "MONSTER ATTACK!"); break;
-            case 22: strcpy(messageStr, "EARTHQUAKE!"); break;
-            case 23: strcpy(messageStr, "TORNADO!"); break;
-            case 24: strcpy(messageStr, "FLOODING!"); break;
-            case 25: strcpy(messageStr, "NUCLEAR MELTDOWN!"); break;
+            case 22: strcpy(messageStr, "TORNADO!"); break;
+            case 23: strcpy(messageStr, "EARTHQUAKE!"); break;
+            case 24: strcpy(messageStr, "PLANE CRASH!"); break;
+            case 25: strcpy(messageStr, "SHIPWRECK!"); break;
+            case 30: strcpy(messageStr, "FIREBOMBING!"); break;
             case 35: strcpy(messageStr, "Population reached 2,000!"); break;
             case 36: strcpy(messageStr, "Population reached 10,000!"); break;
             case 37: strcpy(messageStr, "Population reached 50,000!"); break;
             case 38: strcpy(messageStr, "Population reached 100,000!"); break;
             case 39: strcpy(messageStr, "Population reached 500,000!"); break;
             case 41: strcpy(messageStr, "Heavy traffic reported!"); break;
-            case 42: strcpy(messageStr, "Flooding reported!"); break;
+            case 42: strcpy(messageStr, "FLOODING!"); break;
+            case 43: strcpy(messageStr, "NUCLEAR MELTDOWN!"); break;
             default: sprintf(messageStr, "Event %d", pictId); break;
         }
 
@@ -352,7 +354,7 @@ void doMessage(void) {
         }
 
         /* Show dialog for disasters only */
-        if (pictId >= 20 && pictId <= 25) {
+        if ((pictId >= 20 && pictId <= 25) || pictId == 30 || pictId == 42 || pictId == 43) {
             Notification notif;
             notif.id = pictId;
             notif.locationX = MesX;
@@ -370,17 +372,13 @@ void doMessage(void) {
 
 /* Replace old notification functions with new SendMes equivalents */
 void ShowNotification(int notificationId, ...) {
-    /* Map new IDs to original message numbers */
     switch(notificationId) {
-        case NOTIF_EARTHQUAKE:
-            SendMes(-22);
-            break;
-        case NOTIF_FIRE_REPORTED:
-            SendMes(-20);
-            break;
-        case NOTIF_MONSTER_SIGHTED:
-            SendMes(-21);
-            break;
+        case NOTIF_EARTHQUAKE:      SendMes(-23); break;
+        case NOTIF_FIRE_REPORTED:   SendMes(-20); break;
+        case NOTIF_MONSTER_SIGHTED: SendMes(-21); break;
+        case NOTIF_TORNADO:         SendMes(-22); break;
+        case NOTIF_FLOODING:        SendMes(-42); break;
+        case NOTIF_NUCLEAR_MELTDOWN:SendMes(-43); break;
         default:
             addDebugLog("ShowNotification: Unknown ID %d", notificationId);
             break;
@@ -388,26 +386,13 @@ void ShowNotification(int notificationId, ...) {
 }
 
 void ShowNotificationAt(int notificationId, int x, int y, ...) {
-    /* Map new IDs to original message numbers */
     switch(notificationId) {
-        case NOTIF_EARTHQUAKE:
-            SendMesAt(-22, x, y);
-            break;
-        case NOTIF_FIRE_REPORTED:
-            SendMesAt(-20, x, y);
-            break;
-        case NOTIF_MONSTER_SIGHTED:
-            SendMesAt(-21, x, y);
-            break;
-        case NOTIF_TORNADO:
-            SendMesAt(-23, x, y);
-            break;
-        case NOTIF_FLOODING:
-            SendMesAt(-24, x, y);
-            break;
-        case NOTIF_NUCLEAR_MELTDOWN:
-            SendMesAt(-25, x, y);
-            break;
+        case NOTIF_EARTHQUAKE:      SendMesAt(-23, x, y); break;
+        case NOTIF_FIRE_REPORTED:   SendMesAt(-20, x, y); break;
+        case NOTIF_MONSTER_SIGHTED: SendMesAt(-21, x, y); break;
+        case NOTIF_TORNADO:         SendMesAt(-22, x, y); break;
+        case NOTIF_FLOODING:        SendMesAt(-42, x, y); break;
+        case NOTIF_NUCLEAR_MELTDOWN:SendMesAt(-43, x, y); break;
         default:
             addDebugLog("ShowNotificationAt: Unknown ID %d", notificationId);
             break;
@@ -444,25 +429,45 @@ BOOL CALLBACK NotificationDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
             if (!notif) return FALSE;
             
             switch (notif->id) {
-                case 22: /* EARTHQUAKE */
-                    strcpy(titleText, "EARTHQUAKE DISASTER");
-                    strcpy(explanationText, "A major earthquake has struck your city! Buildings have been damaged and infrastructure may be compromised.");
-                    strcpy(adviceText, "Rebuild damaged areas quickly. Consider earthquake-resistant construction for the future.");
-                    break;
-                case 20: /* FIRE */
+                case 20:
                     strcpy(titleText, "FIRE EMERGENCY");
-                    strcpy(explanationText, "A serious fire has broken out in your city! Fire departments are responding to the emergency.");
-                    strcpy(adviceText, "Ensure adequate fire station coverage. Consider fireproof building materials in high-risk areas.");
+                    strcpy(explanationText, "A serious fire has broken out in your city!");
+                    strcpy(adviceText, "Ensure adequate fire station coverage.");
                     break;
-                case 21: /* MONSTER */
+                case 21:
                     strcpy(titleText, "MONSTER ATTACK");
-                    strcpy(explanationText, "A giant monster has appeared in your city! It is causing massive destruction as it moves through the area.");
-                    strcpy(adviceText, "The monster will eventually leave on its own. Focus on rebuilding damaged areas afterward.");
+                    strcpy(explanationText, "A giant monster is destroying buildings!");
+                    strcpy(adviceText, "The monster will eventually leave. Rebuild afterward.");
+                    break;
+                case 22:
+                    strcpy(titleText, "TORNADO WARNING");
+                    strcpy(explanationText, "A tornado is tearing through the city!");
+                    strcpy(adviceText, "Rebuild damaged areas after the tornado passes.");
+                    break;
+                case 23:
+                    strcpy(titleText, "EARTHQUAKE DISASTER");
+                    strcpy(explanationText, "A major earthquake has struck your city!");
+                    strcpy(adviceText, "Rebuild damaged areas and restore infrastructure.");
+                    break;
+                case 30:
+                    strcpy(titleText, "FIREBOMBING");
+                    strcpy(explanationText, "Firebombing reported in the city!");
+                    strcpy(adviceText, "Deploy fire departments to contain the fires.");
+                    break;
+                case 42:
+                    strcpy(titleText, "FLOODING");
+                    strcpy(explanationText, "Flooding is spreading through the city!");
+                    strcpy(adviceText, "Avoid building in low-lying areas near water.");
+                    break;
+                case 43:
+                    strcpy(titleText, "NUCLEAR MELTDOWN");
+                    strcpy(explanationText, "A nuclear power plant has suffered a catastrophic failure!");
+                    strcpy(adviceText, "Evacuate the area. Radiation will persist for years.");
                     break;
                 default:
                     strcpy(titleText, "CITY ALERT");
-                    strcpy(explanationText, "An important event has occurred in your city that requires your attention.");
-                    strcpy(adviceText, "Review the situation and take appropriate action as needed.");
+                    strcpy(explanationText, "An important event has occurred in your city.");
+                    strcpy(adviceText, "Review the situation and take appropriate action.");
                     break;
             }
             
