@@ -13,6 +13,20 @@ Special thanks to Neozeed and Roytam for major fixes!
 --------------
 
 
+## Building from Source
+
+Clone the repository with the submodule:
+
+```
+git clone --recursive https://github.com/tenox7/WinTown.git
+```
+
+If you already cloned without `--recursive`, initialize the submodule manually:
+
+```
+git submodule update --init
+```
+
 ## Compile for RISC
 
 ### ARM
