@@ -15,6 +15,7 @@ static SimSprite GlobalSprites[MAX_SPRITES];
 static int SpriteCount = 0;
 static short CrashX, CrashY;
 static int SpriteCycle = 0;
+static int absDist;
 
 /* Movement direction vectors for 4-directional movement (trains, buses) */
 static short Dx[5] = {0, 4, 0, -4, 0};   /* East, South, West, North, Stop */
@@ -45,7 +46,7 @@ static short BtClrTab[8] = {RIVER, CHANNEL, POWERBASE, POWERBASE+1, RAILBASE, RA
 
 /* Forward declarations */
 static int GetDirection(int orgX, int orgY, int desX, int desY);
-static int GetHeliDirection(int orgX, int orgY, int desX, int desY);
+static short GetDir(int orgX, int orgY, int desX, int desY);
 static int TurnTo(int orgDir, int desDir);
 static short GetChar(int x, int y);
 static int CanDriveOn(int tileValue);
@@ -501,17 +502,14 @@ void DoAirplaneSprite(SimSprite *sprite) {
     if (SpriteNotInBounds(sprite)) sprite->frame = 0;
 }
 
-/* Helicopter sprite behavior */
+/* Helicopter sprite behavior - matches original Micropolis w_sprite.c */
 void DoCopterSprite(SimSprite *sprite) {
-    int dx, dy, z;
+    short z, d, x, y;
 
-    if (sprite->sound_count > 0) {
-        sprite->sound_count--;
-    }
+    if (sprite->sound_count > 0) sprite->sound_count--;
 
     if (sprite->control < 0) {
         if (sprite->count > 0) sprite->count--;
-
         if (!sprite->count) {
             SimSprite *s = GetSprite(SPRITE_MONSTER);
             if (s != NULL) {
@@ -528,19 +526,16 @@ void DoCopterSprite(SimSprite *sprite) {
                 }
             }
         }
-
         if (!sprite->count) {
-            dx = sprite->orig_x - sprite->x;
-            dy = sprite->orig_y - sprite->y;
-            if (abs(dx) + abs(dy) < 30) {
+            GetDir(sprite->x, sprite->y, sprite->orig_x, sprite->orig_y);
+            if (absDist < 30) {
                 sprite->frame = 0;
                 return;
             }
         }
     } else {
-        dx = sprite->dest_x - sprite->x;
-        dy = sprite->dest_y - sprite->y;
-        if (abs(dx) + abs(dy) < 16) {
+        GetDir(sprite->x, sprite->y, sprite->dest_x, sprite->dest_y);
+        if (absDist < 16) {
             sprite->dest_x = sprite->orig_x;
             sprite->dest_y = sprite->orig_y;
             sprite->control = -1;
@@ -548,29 +543,24 @@ void DoCopterSprite(SimSprite *sprite) {
     }
 
     if (!sprite->sound_count) {
-        dx = (sprite->x + 48) >> 5;
-        dy = sprite->y >> 5;
-        if (dx >= 0 && dx < (WORLD_X >> 1) && dy >= 0 && dy < (WORLD_Y >> 1)) {
-            if (TrfDensity[dx][dy] > 170 && (SimRandom(8) == 0)) {
-                SendMesAt(-41, (dx << 1) + 1, (dy << 1) + 1);
+        x = (sprite->x + 48) >> 5;
+        y = sprite->y >> 5;
+        if (x >= 0 && x < (WORLD_X >> 1) && y >= 0 && y < (WORLD_Y >> 1)) {
+            if (TrfDensity[x][y] > 170 && (Rand16() & 7) == 0) {
+                SendMesAt(-41, (x << 1) + 1, (y << 1) + 1);
                 sprite->sound_count = 200;
             }
         }
     }
 
     z = sprite->frame;
-    if (sprite->step > 0) sprite->step--;
-    if (z == sprite->new_dir && sprite->step <= 0) {
-        sprite->new_dir = GetHeliDirection(sprite->x, sprite->y, sprite->dest_x, sprite->dest_y);
-        sprite->step = 6;
+    if (!(SpriteCycle & 3)) {
+        d = GetDir(sprite->x, sprite->y, sprite->dest_x, sprite->dest_y);
+        z = TurnTo(z, d);
+        sprite->frame = z;
     }
-    z = TurnTo(z, sprite->new_dir);
-    sprite->frame = z;
-    sprite->dir = z;
-
-    MoveSprite(sprite, MOVEMENT_TYPE_HELICOPTER);
-
-    CheckCollisions(sprite);
+    sprite->x += HDx[z];
+    sprite->y += HDy[z];
 }
 
 /* Bus sprite behavior */
@@ -830,24 +820,26 @@ static int GetDirection(int orgX, int orgY, int desX, int desY) {
     return Gdtab[z];
 }
 
-static int GetHeliDirection(int orgX, int orgY, int desX, int desY) {
-    int dispX, dispY, i;
-    long dot, bestDot;
-    int bestDir;
+static short GetDir(int orgX, int orgY, int desX, int desY) {
+    static short Gdtab[13] = { 0, 3, 2, 1, 3, 4, 5, 7, 6, 5, 7, 8, 1 };
+    int dispX, dispY, z;
 
     dispX = desX - orgX;
     dispY = desY - orgY;
-    if (dispX == 0 && dispY == 0) return 0;
-
-    bestDir = 0;
-    bestDot = 0;
-    for (i = 1; i <= 8; i++) {
-        dot = (long)HDx[i] * dispX + (long)HDy[i] * dispY;
-        if (dot <= bestDot) continue;
-        bestDot = dot;
-        bestDir = i;
+    if (dispX < 0) {
+        if (dispY < 0) z = 11;
+        else z = 8;
+    } else {
+        if (dispY < 0) z = 2;
+        else z = 5;
     }
-    return bestDir;
+    if (dispX < 0) dispX = -dispX;
+    if (dispY < 0) dispY = -dispY;
+    absDist = dispX + dispY;
+    if ((dispX << 1) < dispY) z++;
+    else if ((dispY << 1) < dispX) z--;
+    if (z < 0 || z > 12) z = 0;
+    return Gdtab[z];
 }
 
 /* Turn toward desired direction (1 step at a time, shortest path) */
