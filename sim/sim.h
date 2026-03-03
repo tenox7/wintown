@@ -21,8 +21,8 @@
 
 #define POWERMAPROW ((WORLD_X + 15) / 16)
 #define PWRMAPSIZE (POWERMAPROW * WORLD_Y)
-#define POWERWORD(x) ((x) >>4)
-#define SETPOWERBIT(x) (PowerMap[POWERWORD(x)] |= (1 << ((x) & 0xf)))
+#define POWERWORD(x, y) (((x) >>4) + ((y) <<3))
+#define SETPOWERBIT(x, y) (PowerMap[POWERWORD(x, y)] |= (1 << ((x) & 0xf)))
 #define PWRSTKSIZE ((WORLD_X * WORLD_Y) / 4)
 
 #define NMAPS 15
