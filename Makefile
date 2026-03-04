@@ -1,40 +1,26 @@
 CC = cl
 RC = rc
-CFLAGS = /nologo /O2 /Ot /Oi /Z7 /W3 /I. /D_CRT_SECURE_NO_WARNINGS
-#CFLAGS = -D_AXP64_=1 -D_ALPHA64_=1 -DALPHA=1 -DWIN64 -D_WIN64 -DWIN32 -D_WIN32  -Wp64 -W4 -Ap64
+CFLAGS = /nologo /O2 /Ot /Oi /Z7 /I. /D_CRT_SECURE_NO_WARNINGS
+#CFLAGS = -I. -D_AXP64_=1 -D_ALPHA64_=1 -DALPHA=1 -DWIN64 -D_WIN64 -DWIN32 -D_WIN32  -Wp64 -W4 -Ap64
 LIBS = gdi32.lib user32.lib kernel32.lib COMDLG32.lib
 
-OBJS = anim.obj animtab.obj assets.obj budget.obj charts.obj disastr.obj eval.obj gdifix.obj main.obj mapgen.obj newgame.obj notify.obj s_disast.obj s_eval.obj s_gen.obj s_power.obj s_scan.obj s_sim.obj s_traf.obj s_zone.obj scenario.obj sim.obj sprite.obj tiles.obj tools.obj
+LOCAL_OBJS = anim.obj animtab.obj assets.obj budget.obj charts.obj disastr.obj eval.obj gdifix.obj main.obj mapgen.obj newgame.obj notify.obj scenario.obj sim.obj sprite.obj tiles.obj tools.obj
+SIM_OBJS = s_disast.obj s_eval.obj s_gen.obj s_power.obj s_scan.obj s_sim.obj s_traf.obj s_zone.obj
+OBJS = $(LOCAL_OBJS) $(SIM_OBJS)
 
 all: wintown.exe
 
 .c.obj:
 	$(CC) $(CFLAGS) /c $<
 
-s_gen.obj: micropolis\src\sim\s_gen.c
-	$(CC) $(CFLAGS) /c /Fos_gen.obj micropolis\src\sim\s_gen.c
+sim.obj: sim.c
+	$(CC) $(CFLAGS) /c sim.c
+
+{micropolis\src\sim\}.c.obj:
+	$(CC) $(CFLAGS) /c /Fo$@ $<
 
 s_sim.obj: micropolis\src\sim\s_sim.c
 	$(CC) $(CFLAGS) /FIw_sim.h /c /Fos_sim.obj micropolis\src\sim\s_sim.c
-
-s_disast.obj: micropolis\src\sim\s_disast.c
-	$(CC) $(CFLAGS) /c /Fos_disast.obj micropolis\src\sim\s_disast.c
-
-s_eval.obj: micropolis\src\sim\s_eval.c
-	$(CC) $(CFLAGS) /c /Fos_eval.obj micropolis\src\sim\s_eval.c
-
-s_power.obj: micropolis\src\sim\s_power.c
-	$(CC) $(CFLAGS) /c /Fos_power.obj micropolis\src\sim\s_power.c
-
-s_scan.obj: micropolis\src\sim\s_scan.c
-	$(CC) $(CFLAGS) /c /Fos_scan.obj micropolis\src\sim\s_scan.c
-
-
-s_traf.obj: micropolis\src\sim\s_traf.c
-	$(CC) $(CFLAGS) /c /Fos_traf.obj micropolis\src\sim\s_traf.c
-
-s_zone.obj: micropolis\src\sim\s_zone.c
-	$(CC) $(CFLAGS) /c /Fos_zone.obj micropolis\src\sim\s_zone.c
 
 wintown.res: wintown.rc
 	$(RC) wintown.rc
