@@ -3326,6 +3326,7 @@ void initializeGraphics(HWND hwnd) {
     int width;
     int height;
     BITMAPINFOHEADER bi;
+    BITMAPINFO binfo;
     HBITMAP hbmOld;
     char errorMsg[256];
     DWORD error;
