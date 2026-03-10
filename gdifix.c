@@ -14,7 +14,7 @@
 #define MAX_BITMAP_SIZE (16 * 1024 * 1024)  /* 16MB limit */
 
 HANDLE LoadImageFromFile(LPCSTR filename, UINT fuLoad) {
-#if(_MSC_VER > 900)
+#if 0//(_MSC_VER > 900)
     /* Use newer LoadImage API if available */
     return LoadImage(NULL, filename, IMAGE_BITMAP, 0, 0, fuLoad);
 #else
