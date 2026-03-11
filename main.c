@@ -3364,7 +3364,7 @@ void initializeGraphics(HWND hwnd) {
     width = cxClient;
     height = cyClient;
 
-#if NEW32
+#ifdef NEW32
     /* Setup 8-bit DIB section for our drawing buffer */
     ZeroMemory(&bi, sizeof(BITMAPINFOHEADER));
     bi.biSize = sizeof(BITMAPINFOHEADER);
@@ -3381,17 +3381,14 @@ void initializeGraphics(HWND hwnd) {
     ZeroMemory(&bi, sizeof(BITMAPINFOHEADER));
     bi.biSize = sizeof(BITMAPINFOHEADER);
     bi.biWidth = width;
-    bi.biHeight = -height; /* Negative for top-down DIB */
+    bi.biHeight = height; /* We can't do top-down in win32s */
     bi.biPlanes = 1;
     bi.biBitCount = 8; /* 8 bits = 256 colors */
     bi.biCompression = BI_RGB;
 
-	hbmBuffer = CreateDIBitmap(hdc, 
-		&bi,				/* Pointer to BITMAPINFOHEADER */
-		CBM_INIT,			/* Initialize bitmap bits */
-		NULL,				/* Pointer to actual bitmap bits (if any) */
-		&binfo,				/* Pointer to BITMAPINFO */
-		DIB_RGB_COLORS);		/* Color usage */
+	hbmBuffer = CreateCompatibleBitmap(hdc, 
+		bi.biWidth,
+		bi.biHeight);
 #endif
 
     if (hbmBuffer == NULL) {
@@ -3696,7 +3693,7 @@ void resizeBuffer(int cx, int cy) {
         RealizePalette(hdc);
     }
 
-#if NEW32XX
+#ifdef NEW32
     ZeroMemory(&bi, sizeof(BITMAPINFOHEADER));
     bi.biSize = sizeof(BITMAPINFOHEADER);
     bi.biWidth = cx;
@@ -3712,17 +3709,14 @@ void resizeBuffer(int cx, int cy) {
     ZeroMemory(&bi, sizeof(BITMAPINFOHEADER));
     bi.biSize = sizeof(BITMAPINFOHEADER);
     bi.biWidth = cx;
-    bi.biHeight = -cy; /* Negative for top-down DIB */
+    bi.biHeight = cy; /* We can't do top-down in win32s */
     bi.biPlanes = 1;
     bi.biBitCount = 8; /* 8 bits = 256 colors */
     bi.biCompression = BI_RGB;
 
-	hbmNew = CreateDIBitmap(hdc, 
-		&bi,				/* Pointer to BITMAPINFOHEADER */
-		CBM_INIT,			/* Initialize bitmap bits */
-		NULL,				/* Pointer to actual bitmap bits (if any) */
-		&binfo,				/* Pointer to BITMAPINFO */
-		DIB_RGB_COLORS);	/* Color usage */
+	hbmNew = CreateCompatibleBitmap(hdc, 
+		bi.biWidth,
+		bi.biHeight);
 #endif
 
     if (hbmNew == NULL) {
