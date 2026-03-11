@@ -27,7 +27,7 @@ HBITMAP convertTo8Bit(HBITMAP hSrcBitmap, HDC hdc, HPALETTE hSystemPalette);
 int validateTilesetFormat(HBITMAP hBitmap);
 
 /* CheckMenuRadioItem compatibility */
-#if(_MSC_VER < 1000)
+#if 1//(_MSC_VER < 1000)
     /* Simple fallback for older versions - uncheck all then check selected */
     #define CHECK_MENU_RADIO_ITEM(hmenu, first, last, check, flags) \
         { int __i; \

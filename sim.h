@@ -8,6 +8,8 @@
 #include <windows.h>
 #include "sprite.h"
 
+#define OutputDebugString addDebugLog
+
 /* External declaration for UpdateToolbar function */
 extern void UpdateToolbar(void);
 
