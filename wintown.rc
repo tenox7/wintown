@@ -11,6 +11,13 @@
 #include "windows.h"
 #undef APSTUDIO_HIDDEN_SYMBOLS
 
+// NT 3.5 (2026-10): its SDK has no styles of Windows 95; NT 3.5 ignores them
+#ifndef DS_CENTER
+#define DS_CENTER               0x0800L
+#define SS_BITMAP               0x0000000EL
+#define SS_CENTERIMAGE          0x00000200L
+#endif
+
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
 
@@ -257,10 +264,10 @@ BEGIN
     PUSHBUTTON      "Cancel",IDC_CANCEL,365,241,50,14
 END
 
-IDD_SCENARIO_SELECT DIALOGEX 0, 0, 400, 300
+IDD_SCENARIO_SELECT DIALOG DISCARDABLE  0, 0, 400, 300
 STYLE DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Select Scenario - WiNTown"
-FONT 8, "MS Sans Serif", 0, 0, 0x1
+FONT 8, "MS Sans Serif"
 BEGIN
     LTEXT           "Choose a scenario:",IDC_STATIC,10,10,80,12
     LISTBOX         IDC_SCENARIO_LIST,10,25,160,200,WS_VSCROLL | WS_TABSTOP

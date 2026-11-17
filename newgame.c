@@ -10,6 +10,7 @@
 #include "assets.h"
 #include <windows.h>
 #include <commdlg.h>
+#include "gdifix.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -50,6 +51,47 @@ static int scenarioCount = 8;
 static NewGameConfig *currentConfig = NULL;
 static HBITMAP currentPreviewBitmap = NULL;
 static int currentListMode = NEWGAME_SCENARIO; /* Track what's in the listbox */
+
+#ifdef OLD_NT
+/* NT 3.5's static control shows no bitmaps (SS_BITMAP, STM_SETIMAGE), so the preview
+   control paints currentPreviewBitmap itself, centered (2026-10) */
+static WNDPROC staticProc;
+
+static LRESULT CALLBACK previewProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    PAINTSTRUCT ps;
+    RECT rc;
+    BITMAP bm;
+    HDC hdc, memDC;
+    HBITMAP oldBitmap;
+
+    if (msg != WM_PAINT || !currentPreviewBitmap) {
+        return CallWindowProc(staticProc, hwnd, msg, wParam, lParam);
+    }
+    hdc = BeginPaint(hwnd, &ps);
+    GetClientRect(hwnd, &rc);
+    GetObject(currentPreviewBitmap, sizeof(bm), &bm);
+    memDC = CreateCompatibleDC(hdc);
+    oldBitmap = SelectObject(memDC, currentPreviewBitmap);
+    BitBlt(hdc, (rc.right - bm.bmWidth) / 2, (rc.bottom - bm.bmHeight) / 2, bm.bmWidth, bm.bmHeight,
+           memDC, 0, 0, SRCCOPY);
+    SelectObject(memDC, oldBitmap);
+    DeleteDC(memDC);
+    EndPaint(hwnd, &ps);
+    return 0;
+}
+#endif
+
+/* Show currentPreviewBitmap in the preview control */
+static void showPreview(HWND previewCtrl) {
+#ifdef OLD_NT
+    if ((WNDPROC)GetWindowLong(previewCtrl, GWL_WNDPROC) != previewProc) {
+        staticProc = (WNDPROC)SetWindowLong(previewCtrl, GWL_WNDPROC, (LONG)previewProc);
+    }
+    InvalidateRect(previewCtrl, NULL, TRUE);
+#else
+    SendMessage(previewCtrl, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)currentPreviewBitmap);
+#endif
+}
 
 /* Load selected scenario/city map and render it into the preview control */
 static void updateSelectionPreview(HWND hwnd) {
@@ -99,7 +141,7 @@ static void updateSelectionPreview(HWND hwnd) {
     }
 
     if (renderMapPreview(&currentPreviewBitmap, previewWidth, previewHeight)) {
-        SendMessage(previewCtrl, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)currentPreviewBitmap);
+        showPreview(previewCtrl);
         addGameLog("Selection preview rendered (%dx%d)", previewWidth, previewHeight);
     }
 }
@@ -137,7 +179,7 @@ static void generateDefaultPreview(HWND hwnd) {
     
     /* Generate new preview with dynamic sizing */
     if (generateMapPreview(&params, &currentPreviewBitmap, previewWidth, previewHeight)) {
-        SendMessage(previewCtrl, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)currentPreviewBitmap);
+        showPreview(previewCtrl);
         addGameLog("Default map preview generated successfully (%dx%d)", previewWidth, previewHeight);
     } else {
         addGameLog("ERROR: Failed to generate default map preview");
@@ -438,7 +480,7 @@ BOOL CALLBACK newGameDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
                 
                 /* Generate new preview with dynamic sizing */
                 if (generateMapPreview(&params, &currentPreviewBitmap, previewWidth, previewHeight)) {
-                    SendMessage(previewCtrl, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)currentPreviewBitmap);
+                    showPreview(previewCtrl);
                     addGameLog("Map preview generated successfully (%dx%d)", previewWidth, previewHeight);
                 } else {
                     addGameLog("ERROR: Failed to generate map preview");

@@ -3,6 +3,7 @@
 #include "resource.h"
 #include "sim.h"
 #include "assets.h"
+#include "gdifix.h"
 
 extern int loadCity(char *filename);
 extern int loadFile(char *filename);

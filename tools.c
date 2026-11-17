@@ -34,14 +34,14 @@ void DetectCPUType(void) {
     GetSystemInfo(&sysInfo);
     
     /* Use ProcessorArchitectureNames array from arch.h for CPU name */
-    if (sysInfo.wProcessorArchitecture < 15) {
-        strcpy(cpuArchStr, ProcessorArchitectureNames[sysInfo.wProcessorArchitecture]);
+    if (processorArchitecture(&sysInfo) < 15) {
+        strcpy(cpuArchStr, ProcessorArchitectureNames[processorArchitecture(&sysInfo)]);
     } else {
         strcpy(cpuArchStr, PROCESSOR_ARCHITECTURE_STR_UNKNOWN);
     }
     
     /* Map to bitmap filename */
-    switch (sysInfo.wProcessorArchitecture) {
+    switch (processorArchitecture(&sysInfo)) {
         case PROCESSOR_ARCHITECTURE_INTEL:
             strcpy(bitmapName, "x86");
             break;

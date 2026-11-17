@@ -1,3 +1,9 @@
+/* NT 3.5's headers (the PINT 3.5 SDK) have no PROCESSOR_ARCHITECTURE_* names and no
+ * wProcessorArchitecture: processorArchitecture() below then takes dwProcessorType */
+#ifndef PROCESSOR_ARCHITECTURE_INTEL
+#define ARCH_FROM_PROCESSOR_TYPE
+#endif
+
 /* CPU Architecture Constants */
 #define PROCESSOR_ARCHITECTURE_INTEL       0
 #define PROCESSOR_ARCHITECTURE_MIPS        1
@@ -38,3 +44,37 @@ static char* ProcessorArchitectureNames[] = {
 /* For unknown architecture (0xFFFF) */
 #define PROCESSOR_ARCHITECTURE_STR_UNKNOWN "Unknown"
 
+
+/* The architecture of the processor. NT 3.5 has no wProcessorArchitecture (NT 3.51 put it
+ * where dwOemId is): there it is that of dwProcessorType. NT 4.0 on ARM (PINT 4.0) gives no
+ * dwProcessorType: wProcessorArchitecture names it */
+static WORD processorArchitecture(SYSTEM_INFO *sysInfo) {
+#ifdef ARCH_FROM_PROCESSOR_TYPE
+    switch (sysInfo->dwProcessorType) {
+    case PROCESSOR_INTEL_386:
+    case PROCESSOR_INTEL_486:
+    case PROCESSOR_INTEL_PENTIUM:
+        return PROCESSOR_ARCHITECTURE_INTEL;
+    case PROCESSOR_MIPS_R4000:
+        return PROCESSOR_ARCHITECTURE_MIPS;
+    case PROCESSOR_ALPHA_21064:
+        return PROCESSOR_ARCHITECTURE_ALPHA;
+#ifdef PROCESSOR_PPC_601
+    case PROCESSOR_PPC_601:
+    case PROCESSOR_PPC_603:
+    case PROCESSOR_PPC_604:
+    case PROCESSOR_PPC_620:
+        return PROCESSOR_ARCHITECTURE_PPC;
+#endif
+#ifdef PROCESSOR_ARM_CORTEX_A7
+    case PROCESSOR_ARM_CORTEX_A7:
+    case PROCESSOR_ARM_CORTEX_A53:
+    case PROCESSOR_ARM_CORTEX_A72:
+        return PROCESSOR_ARCHITECTURE_ARM;
+#endif
+    }
+    return PROCESSOR_ARCHITECTURE_UNKNOWN;
+#else
+    return sysInfo->wProcessorArchitecture;
+#endif
+}
